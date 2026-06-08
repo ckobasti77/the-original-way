@@ -5,6 +5,8 @@ import { SettingsProvider } from "@/components/settings-provider";
 
 import "./globals.css";
 
+import "react-toastify/dist/ReactToastify.css";
+
 export const metadata: Metadata = {
   title: "The Original Way",
   description:
