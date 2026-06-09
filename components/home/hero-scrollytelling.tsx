@@ -27,24 +27,24 @@ const FRAME_SEGMENTS = [
 const STEP_TRIGGER_DELTA = 56;
 const TOUCH_TRIGGER_DELTA = 52;
 const INTRO_DURATION_MS = 2000;
-const STEP_TRANSITION_MS = 2000;
+const STEP_TRANSITION_MS = 1000;
 const SCROLL_EPSILON = 2;
 
 const INTRO_COPY = {
   sr: {
-    forming: "Logo se formira.",
-    ready: "Skroluj za prvo poglavlje.",
-    pacing: "Frejm po frejm. Bez rezova.",
-    sequence: "Jedan skrol pusta sledecu sekvencu.",
-    statusPlaying: "u toku",
+    forming: "Estetika se definiše.",
+    ready: "Zakoračite u original.",
+    pacing: "Originalni krojevi. Bez kompromisa.",
+    sequence: "Skrolujte za otkrivanje autentične kolekcije.",
+    statusPlaying: "učitavanje",
     statusReady: "spremno",
   },
   en: {
-    forming: "The mark takes shape.",
-    ready: "Scroll for the first chapter.",
-    pacing: "Frame by frame. No cuts.",
-    sequence: "One scroll releases the next sequence.",
-    statusPlaying: "playing",
+    forming: "Aesthetics defined.",
+    ready: "Step into the original.",
+    pacing: "Original cuts. No compromises.",
+    sequence: "Scroll to unveil the authentic collection.",
+    statusPlaying: "loading",
     statusReady: "ready",
   },
 } as const;
@@ -79,7 +79,7 @@ function useReducedMotionPreference() {
 }
 
 export function HeroScrollytelling() {
-  const { language } = useSettings();
+  const { language, setTheme } = useSettings();
   const introCopy = INTRO_COPY[language];
   const prefersReducedMotion = useReducedMotionPreference();
   const framePlayerRef = useRef<FramePlayerHandle | null>(null);
@@ -143,6 +143,12 @@ export function HeroScrollytelling() {
       setStopIndex(nextStopIndex);
       framePlayerRef.current?.setFrame(targetFrame);
 
+      window.dispatchEvent(
+        new CustomEvent("tow-transition-end", {
+          detail: { activeStopIndex: nextStopIndex },
+        })
+      );
+
       if (!snapScroll || Math.abs(window.scrollY - targetScroll) <= SCROLL_EPSILON) {
         return;
       }
@@ -184,6 +190,12 @@ export function HeroScrollytelling() {
       isAnimatingRef.current = true;
       setIsTransitioning(true);
 
+      window.dispatchEvent(
+        new CustomEvent("tow-transition-start", {
+          detail: { from: stopIndexRef.current, to: nextStopIndex },
+        })
+      );
+
       const frameTransition = framePlayer.playToFrame(targetFrame, {
         durationMs: STEP_TRANSITION_MS,
         reducedMotion: prefersReducedMotion,
@@ -219,6 +231,12 @@ export function HeroScrollytelling() {
       setStopIndex(nextStopIndex);
       setIsTransitioning(false);
       isAnimatingRef.current = false;
+
+      window.dispatchEvent(
+        new CustomEvent("tow-transition-end", {
+          detail: { activeStopIndex: nextStopIndex },
+        })
+      );
     },
     [
       getFrameForStop,
@@ -238,6 +256,25 @@ export function HeroScrollytelling() {
     const nextStopIndex = clamp(stopIndexRef.current + direction, 0, maxStopIndex);
     void animateToStop(nextStopIndex);
   });
+
+  const handleNextCheckpoint = useCallback(() => {
+    if (!introComplete || isAnimatingRef.current || isInputLocked()) {
+      return;
+    }
+    const nextIndex = clamp(stopIndexRef.current + 1, 0, maxStopIndex);
+    if (nextIndex !== stopIndexRef.current) {
+      void animateToStop(nextIndex);
+    }
+  }, [introComplete, isInputLocked, maxStopIndex, animateToStop]);
+
+  const handleLastCheckpoint = useCallback(() => {
+    if (!introComplete || isAnimatingRef.current || isInputLocked()) {
+      return;
+    }
+    if (maxStopIndex !== stopIndexRef.current) {
+      void animateToStop(maxStopIndex);
+    }
+  }, [introComplete, isInputLocked, maxStopIndex, animateToStop]);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -276,6 +313,19 @@ export function HeroScrollytelling() {
   }, [stopIndex]);
 
   useEffect(() => {
+    const themes = ["light", "dark", "light", "dark"] as const;
+    const targetTheme = themes[stopIndex] ?? "light";
+    setTheme(targetTheme);
+
+    const root = document.documentElement;
+    root.setAttribute("data-stop-index", String(stopIndex));
+    const chapterId = stopIndex === 0 ? "intro" : CHAPTERS[stopIndex - 1]?.id || "intro";
+    root.setAttribute("data-chapter", chapterId);
+  }, [stopIndex, setTheme]);
+
+
+
+  useEffect(() => {
     if (prefersReducedMotion) {
       lenisRef.current?.destroy();
       lenisRef.current = null;
@@ -312,6 +362,12 @@ export function HeroScrollytelling() {
     stopIndexRef.current = 0;
     setStopIndex(0);
     setIsTransitioning(false);
+
+    window.dispatchEvent(
+      new CustomEvent("tow-transition-end", {
+        detail: { activeStopIndex: 0 },
+      })
+    );
 
     const lenis = lenisRef.current;
 
@@ -502,9 +558,9 @@ export function HeroScrollytelling() {
     <section
       ref={sectionRef}
       className="relative touch-none"
-      style={{ height: `calc(${STOP_FRAMES.length} * 100dvh)` }}
+      style={{ height: `calc(${STOP_FRAMES.length} * 100vh)` }}
     >
-      <div className="fixed inset-0 isolate h-dvh w-screen overflow-hidden bg-[var(--page-bg)]">
+      <div className="fixed inset-0 isolate h-screen w-screen overflow-hidden bg-[var(--page-bg)]">
         <div className="absolute inset-0">
           <FramePlayer
             ref={framePlayerRef}
@@ -516,7 +572,7 @@ export function HeroScrollytelling() {
           <div className="absolute inset-x-0 bottom-0 h-[30vh] bg-[linear-gradient(180deg,rgba(4,9,17,0)_0%,rgba(4,9,17,0.52)_100%)]" />
         </div>
 
-        <div className="relative z-10 flex min-h-dvh flex-col px-4 pb-6 pt-28 md:px-8 md:pb-8 md:pt-32">
+        <div className="relative z-10 flex min-h-screen flex-col px-4 pb-6 pt-28 md:px-8 md:pb-8 md:pt-32">
           <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
             {storyStarted ? (
               <div className="relative flex min-h-0 flex-1 items-stretch">
@@ -530,7 +586,11 @@ export function HeroScrollytelling() {
                 />
               </div>
             ) : (
-              <div className="flex flex-1">
+              <div className={`flex flex-1 transition-all duration-400 ease-[cubic-bezier(0.3,0,0.2,1)] ${
+                isTransitioning
+                  ? "scale-[0.93] translate-y-2 opacity-0 blur-[3px]"
+                  : "scale-100 translate-y-0 opacity-100 blur-0"
+              }`}>
                 <div className="flex w-full flex-col justify-between">
                   <div className="max-w-[18rem]">
                     <p className="reveal-up text-[0.62rem] uppercase tracking-[0.34em] text-[var(--text-muted)]">
@@ -561,6 +621,52 @@ export function HeroScrollytelling() {
                 </div>
               </div>
             )}
+
+            {/* Checkpoint navigation buttons */}
+            <div className="pointer-events-auto mt-6 flex justify-center gap-4">
+              <button
+                onClick={handleNextCheckpoint}
+                disabled={stopIndex >= maxStopIndex || !introComplete || isTransitioning}
+                className="group flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] backdrop-blur-md text-[var(--text-primary)] transition-all duration-300 hover:scale-105 active:scale-95 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] disabled:pointer-events-none disabled:opacity-25"
+                title={language === "sr" ? "Sledeći korak" : "Next step"}
+                aria-label={language === "sr" ? "Sledeći korak" : "Next step"}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 transition-transform duration-300 group-hover:translate-y-0.5"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              <button
+                onClick={handleLastCheckpoint}
+                disabled={stopIndex >= maxStopIndex || !introComplete || isTransitioning}
+                className="group flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] backdrop-blur-md text-[var(--text-primary)] transition-all duration-300 hover:scale-105 active:scale-95 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] disabled:pointer-events-none disabled:opacity-25"
+                title={language === "sr" ? "Kraj priče" : "End of story"}
+                aria-label={language === "sr" ? "Kraj priče" : "End of story"}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 transition-transform duration-300 group-hover:translate-y-0.5"
+                >
+                  <path d="m6 6 6 6 6-6" />
+                  <path d="m6 12 6 6 6-6" />
+                </svg>
+              </button>
+            </div>
 
             <div className="pointer-events-none mt-6 flex items-center justify-between gap-4 text-[0.62rem] uppercase tracking-[0.3em] text-[var(--text-muted)]">
               <div>{storyStarted ? activeChapter.eyebrow[language] : BRAND_NAME}</div>

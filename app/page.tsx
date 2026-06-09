@@ -3,7 +3,7 @@ import { Navbar } from "@/components/home/navbar";
 
 export default function Home() {
   return (
-    <main className="relative min-h-dvh">
+    <main className="relative min-h-screen">
       <Navbar />
       <HeroScrollytelling />
     </main>

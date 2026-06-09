@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 
 import {
   forwardRef,
@@ -53,25 +52,29 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
     forwardedRef,
   ) {
     const animationFrameRef = useRef<number | null>(null);
-    const imageRef = useRef<HTMLImageElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const currentFrameRef = useRef(clampFrame(initialFrame));
-    const loadedFramesRef = useRef(new Set<number>());
-    const preloadPromisesRef = useRef(new Map<number, Promise<void>>());
+    
+    // Persistent memory cache for loaded/preloading HTMLImageElements to prevent GC
+    const imagesRef = useRef<Map<number, HTMLImageElement>>(new Map());
+    const preloadPromisesRef = useRef<Map<number, Promise<HTMLImageElement>>>(new Map());
 
-    const preloadFrame = useCallback((frame: number) => {
+    const preloadFrame = useCallback((frame: number): Promise<HTMLImageElement> => {
       const nextFrame = clampFrame(frame);
 
-      if (loadedFramesRef.current.has(nextFrame)) {
-        return Promise.resolve();
+      if (imagesRef.current.has(nextFrame)) {
+        const cachedImg = imagesRef.current.get(nextFrame)!;
+        if (cachedImg.complete && cachedImg.naturalWidth > 0) {
+          return Promise.resolve(cachedImg);
+        }
       }
 
       const cachedPromise = preloadPromisesRef.current.get(nextFrame);
-
       if (cachedPromise) {
         return cachedPromise;
       }
 
-      const promise = new Promise<void>((resolve) => {
+      const promise = new Promise<HTMLImageElement>((resolve) => {
         const frameImage = new window.Image();
         frameImage.decoding = "async";
         let settled = false;
@@ -82,9 +85,9 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
           }
 
           settled = true;
-          loadedFramesRef.current.add(nextFrame);
+          imagesRef.current.set(nextFrame, frameImage);
           preloadPromisesRef.current.delete(nextFrame);
-          resolve();
+          resolve(frameImage);
         };
 
         const complete = () => {
@@ -146,10 +149,47 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
       const nextFrame = clampFrame(frame);
       currentFrameRef.current = nextFrame;
 
-      if (imageRef.current) {
-        imageRef.current.src = getFrameSrc(nextFrame);
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const img = imagesRef.current.get(nextFrame);
+      if (img && img.complete && img.naturalWidth > 0) {
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+
+        const imgRatio = imgWidth / imgHeight;
+        const canvasRatio = canvasWidth / canvasHeight;
+
+        let drawWidth = canvasWidth;
+        let drawHeight = canvasHeight;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // "object-cover" styling equivalent calculation
+        if (canvasRatio > imgRatio) {
+          drawHeight = canvasWidth / imgRatio;
+          offsetY = (canvasHeight - drawHeight) / 2;
+        } else {
+          drawWidth = canvasHeight * imgRatio;
+          offsetX = (canvasWidth - drawWidth) / 2;
+        }
+
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      } else {
+        // Fallback: request preload and paint when done
+        void preloadFrame(nextFrame).then(() => {
+          if (currentFrameRef.current === nextFrame) {
+            paintFrame(nextFrame);
+          }
+        });
       }
-    }, []);
+    }, [preloadFrame]);
 
     const cancelAnimation = useCallback(() => {
       if (animationFrameRef.current !== null) {
@@ -157,6 +197,28 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
         animationFrameRef.current = null;
       }
     }, []);
+
+    // Setup Resizing logic with ResizeObserver to ensure crisp quality & correct cover style
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const resizeObserver = new ResizeObserver(() => {
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        if (width === 0 || height === 0) return;
+
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        paintFrame(currentFrameRef.current);
+      });
+
+      resizeObserver.observe(canvas);
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }, [paintFrame]);
 
     useEffect(() => {
       KEY_FRAMES.forEach((frame) => {
@@ -246,16 +308,12 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
     );
 
     return (
-      <img
-        ref={imageRef}
-        alt={alt}
-        draggable={false}
-        fetchPriority="high"
-        loading="eager"
-        decoding="async"
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label={alt}
         className={`${className ?? ""} block`}
-        style={{ height: "100dvh", width: "100vw" }}
-        src={getFrameSrc(currentFrameRef.current)}
+        style={{ height: "100vh", width: "100vw" }}
       />
     );
   },

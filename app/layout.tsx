@@ -23,7 +23,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${bodyFont.variable} ${displayFont.variable} antialiased`}
     >
-      <body className="min-h-dvh">
+      <body className="min-h-screen">
         <SettingsProvider>{children}</SettingsProvider>
       </body>
     </html>
