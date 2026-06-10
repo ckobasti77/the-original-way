@@ -78,6 +78,16 @@
   --color-text-muted: var(--text-muted);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-33.3333%);
+    }
+  }
 }
 
 :root[data-theme="dark"] {
@@ -137,6 +147,21 @@
   --story-shadow-color: rgba(248, 241, 229, 0.8);
   --readability-wash: rgba(255, 249, 240, 0.56);
   --readability-edge: rgba(255, 238, 220, 0.28);
+}
+
+:root[data-stop-index="2"] .story-float {
+  --text-primary: #eff4fb;
+  --text-secondary: rgba(239, 244, 251, 0.76);
+  --text-muted: rgba(239, 244, 251, 0.52);
+  --text-halo: rgba(1, 8, 16, 0.7);
+  --text-depth: rgba(1, 8, 16, 0.48);
+  --shadow-rgb: 1, 8, 16;
+  --action-primary-bg: #eff4fb;
+  --action-primary-fg: #0b1627;
+  --border-soft: rgba(220, 231, 245, 0.14);
+  --border-strong: rgba(220, 231, 245, 0.24);
+  --surface: rgba(7, 17, 30, 0.48);
+  --surface-strong: rgba(10, 22, 37, 0.78);
 }
 
 :root[data-stop-index="3"] {
@@ -326,7 +351,7 @@ button:focus-visible {
 .story-copy-panel::before {
   content: "";
   position: absolute;
-  inset: -1rem -1.35rem -1.1rem;
+  inset: -1rem -2rem -1.1rem;
   z-index: -1;
   border-radius: 999px;
   background:
@@ -481,10 +506,47 @@ body.story-lock::-webkit-scrollbar {
 
 @media (max-width: 640px) {
   .story-copy-panel::before {
-    inset: -0.85rem -0.9rem -0.95rem;
+    inset: -0.85rem -1.4rem -0.95rem;
   }
 
   .story-subcopy {
     font-weight: 650;
   }
+}
+
+/* Infinite scrolling marquee */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-33.3333%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.mask-fade-edges {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
 }

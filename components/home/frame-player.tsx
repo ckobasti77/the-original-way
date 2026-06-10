@@ -58,9 +58,14 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
     // Persistent memory cache for loaded/preloading HTMLImageElements to prevent GC
     const imagesRef = useRef<Map<number, HTMLImageElement>>(new Map());
     const preloadPromisesRef = useRef<Map<number, Promise<HTMLImageElement>>>(new Map());
+    const failedFramesRef = useRef<Set<number>>(new Set());
 
     const preloadFrame = useCallback((frame: number): Promise<HTMLImageElement> => {
       const nextFrame = clampFrame(frame);
+
+      if (failedFramesRef.current.has(nextFrame)) {
+        return Promise.resolve(new window.Image());
+      }
 
       if (imagesRef.current.has(nextFrame)) {
         const cachedImg = imagesRef.current.get(nextFrame)!;
@@ -100,7 +105,10 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
         };
 
         frameImage.onload = complete;
-        frameImage.onerror = settle;
+        frameImage.onerror = () => {
+          failedFramesRef.current.add(nextFrame);
+          settle();
+        };
         frameImage.src = getFrameSrc(nextFrame);
 
         if (frameImage.complete && frameImage.naturalWidth > 0) {
@@ -151,9 +159,14 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
 
       const canvas = canvasRef.current;
       if (!canvas) return;
+      canvas.setAttribute("data-frame", String(nextFrame));
 
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+
+      if (failedFramesRef.current.has(nextFrame)) {
+        return;
+      }
 
       const img = imagesRef.current.get(nextFrame);
       if (img && img.complete && img.naturalWidth > 0) {
@@ -198,25 +211,30 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
       }
     }, []);
 
-    // Setup Resizing logic with ResizeObserver to ensure crisp quality & correct cover style
+    // Setup Resizing logic with window resize listener to ensure crisp quality & correct cover style
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const resizeObserver = new ResizeObserver(() => {
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
-        if (width === 0 || height === 0) return;
-
+      const handleResize = () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        paintFrame(currentFrameRef.current);
-      });
+        const targetWidth = Math.round(width * dpr);
+        const targetHeight = Math.round(height * dpr);
 
-      resizeObserver.observe(canvas);
+        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          paintFrame(currentFrameRef.current);
+        }
+      };
+
+      window.addEventListener("resize", handleResize);
+      handleResize(); // Initial sizing
+
       return () => {
-        resizeObserver.disconnect();
+        window.removeEventListener("resize", handleResize);
       };
     }, [paintFrame]);
 
@@ -310,6 +328,7 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
     return (
       <canvas
         ref={canvasRef}
+        id="hero-frame-canvas"
         role="img"
         aria-label={alt}
         className={`${className ?? ""} block`}

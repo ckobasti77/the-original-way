@@ -1,3 +1,4 @@
+import { BrandsMarquee } from "@/components/home/brands-marquee";
 import { HeroScrollytelling } from "@/components/home/hero-scrollytelling";
 import { Navbar } from "@/components/home/navbar";
 
@@ -6,6 +7,7 @@ export default function Home() {
     <main className="relative min-h-screen">
       <Navbar />
       <HeroScrollytelling />
+      <BrandsMarquee />
     </main>
   );
 }

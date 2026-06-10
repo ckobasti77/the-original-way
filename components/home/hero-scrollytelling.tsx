@@ -15,6 +15,14 @@ import { AnimatedText } from "./animated-text";
 import { HeroAnimatedText } from "./hero-animated-text";
 import { BRAND_NAME, CHAPTERS } from "./content";
 import { FramePlayer, type FramePlayerHandle } from "./frame-player";
+import dynamic from "next/dynamic";
+import { LiquidGlassCard } from "./liquid-glass-card";
+import { gsap } from "gsap";
+
+const ModelViewer = dynamic(
+  () => import("./model-viewer").then((mod) => mod.ModelViewer),
+  { ssr: false }
+);
 
 const INTRO_START_FRAME = 1;
 const STOP_FRAMES = [61, 122, 183, 245] as const;
@@ -419,6 +427,23 @@ export function HeroScrollytelling() {
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
+      const target = event.target as HTMLElement;
+      if (!sectionRef.current || !sectionRef.current.contains(target)) {
+        return;
+      }
+      const lastStopPos = getStopPosition(maxStopIndex);
+      const isScrolledDown = window.scrollY > lastStopPos + SCROLL_EPSILON;
+
+      if (stopIndexRef.current === maxStopIndex) {
+        if (event.deltaY > 0) {
+          // Scrolling down: let it scroll naturally past the scrollytelling
+          return;
+        } else if (event.deltaY < 0 && isScrolledDown) {
+          // Scrolling up but we are still below the scrollytelling section: let it scroll up naturally
+          return;
+        }
+      }
+
       event.preventDefault();
 
       if (!introComplete || isAnimatingRef.current || isInputLocked()) {
@@ -438,19 +463,45 @@ export function HeroScrollytelling() {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
+      const target = event.target as HTMLElement;
+      if (!sectionRef.current || !sectionRef.current.contains(target)) {
+        return;
+      }
       touchStartYRef.current = event.changedTouches[0]?.clientY ?? null;
     };
 
     const handleTouchMove = (event: TouchEvent) => {
+      const target = event.target as HTMLElement;
+      if (!sectionRef.current || !sectionRef.current.contains(target)) {
+        return;
+      }
+      const lastStopPos = getStopPosition(maxStopIndex);
+      const isScrolledDown = window.scrollY > lastStopPos + SCROLL_EPSILON;
+
+      const touchY = event.changedTouches[0]?.clientY ?? null;
+      if (touchY !== null && touchStartYRef.current !== null) {
+        const deltaY = touchStartYRef.current - touchY;
+        if (stopIndexRef.current === maxStopIndex) {
+          if (deltaY > 0) {
+            // Scrolling down (swiping up): let it scroll naturally
+            return;
+          } else if (deltaY < 0 && isScrolledDown) {
+            // Scrolling up (swiping down): let it scroll up naturally
+            return;
+          }
+        }
+      }
+
       event.preventDefault();
     };
 
     const handleTouchEnd = (event: TouchEvent) => {
-      event.preventDefault();
-
-      if (!introComplete || isAnimatingRef.current || isInputLocked()) {
+      const target = event.target as HTMLElement;
+      if (!sectionRef.current || !sectionRef.current.contains(target)) {
         return;
       }
+      const lastStopPos = getStopPosition(maxStopIndex);
+      const isScrolledDown = window.scrollY > lastStopPos + SCROLL_EPSILON;
 
       const startY = touchStartYRef.current;
       const endY = event.changedTouches[0]?.clientY ?? null;
@@ -460,6 +511,22 @@ export function HeroScrollytelling() {
       }
 
       const deltaY = startY - endY;
+
+      if (stopIndexRef.current === maxStopIndex) {
+        if (deltaY > 0) {
+          // Scrolling down: let it scroll naturally
+          return;
+        } else if (deltaY < 0 && isScrolledDown) {
+          // Scrolling up: let it scroll naturally
+          return;
+        }
+      }
+
+      event.preventDefault();
+
+      if (!introComplete || isAnimatingRef.current || isInputLocked()) {
+        return;
+      }
 
       if (Math.abs(deltaY) < TOUCH_TRIGGER_DELTA) {
         return;
@@ -480,16 +547,27 @@ export function HeroScrollytelling() {
         return;
       }
 
+      const lastStopPos = getStopPosition(maxStopIndex);
+      const isScrolledDown = window.scrollY > lastStopPos + SCROLL_EPSILON;
+
       if (
         event.key === "ArrowDown" ||
         event.key === "PageDown" ||
         event.key === " "
       ) {
+        if (stopIndexRef.current === maxStopIndex) {
+          // Let it scroll naturally down
+          return;
+        }
         event.preventDefault();
         requestStageChange(1);
       }
 
       if (event.key === "ArrowUp" || event.key === "PageUp") {
+        if (stopIndexRef.current === maxStopIndex && isScrolledDown) {
+          // Let it scroll naturally up
+          return;
+        }
         event.preventDefault();
         requestStageChange(-1);
       }
@@ -553,17 +631,141 @@ export function HeroScrollytelling() {
     getStopPosition,
     introComplete,
     isInputLocked,
+    maxStopIndex,
     prefersReducedMotion,
     setStopInstantly,
   ]);
 
+  // GSAP: Initial Page Load Animation
+  useEffect(() => {
+    const sectionElement = sectionRef.current;
+    if (!sectionElement) return;
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        delay: 0.15,
+      });
+
+      // 1. Navbar fade/slide down
+      tl.fromTo(
+        "header",
+        { y: -80, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1.0, ease: "power4.out" }
+      );
+
+      // Stagger nav links & toggles
+      tl.fromTo(
+        "header nav a, header button, header .nav-text",
+        { y: -15, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, stagger: 0.04, ease: "power3.out" },
+        "-=0.7"
+      );
+
+      // 2. Intro grid layout columns
+      const leftCol = sectionElement.querySelector(".lg\\:grid > div:first-child");
+      const rightCol = sectionElement.querySelector(".lg\\:grid > div:last-child");
+
+      if (leftCol && rightCol) {
+        tl.fromTo(
+          leftCol,
+          { x: -80, opacity: 0, rotateY: 10 },
+          { x: 0, opacity: 1, rotateY: 0, duration: 1.2, ease: "power4.out" },
+          "-=0.55"
+        );
+
+        tl.fromTo(
+          rightCol,
+          { x: 80, opacity: 0, rotateY: -10 },
+          { x: 0, opacity: 1, rotateY: 0, duration: 1.2, ease: "power4.out" },
+          "-=1.1"
+        );
+
+        // Stagger inner canvas & CTA buttons
+        const innerInteractive = sectionElement.querySelectorAll(".lg\\:grid canvas, .lg\\:grid .cta-button");
+        tl.fromTo(
+          innerInteractive,
+          { scale: 0.75, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 1.0, stagger: 0.08, ease: "back.out(1.4)" },
+          "-=0.75"
+        );
+      }
+
+      // Mobile layout cards
+      const mobileCards = sectionElement.querySelectorAll(".lg\\:hidden > div");
+      if (mobileCards.length > 0) {
+        tl.fromTo(
+          mobileCards,
+          { y: 60, opacity: 0, scale: 0.9, rotateX: 8 },
+          { y: 0, opacity: 1, scale: 1, rotateX: 0, duration: 1.1, stagger: 0.15, ease: "power4.out" },
+          "-=0.9"
+        );
+      }
+
+      // 3. Stagger checkpoint control buttons at the bottom
+      tl.fromTo(
+        ".checkpoint-button",
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.7)" },
+        "-=0.75"
+      );
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // GSAP: Transition Out for Intro Grid/Cards
+  useEffect(() => {
+    if (!isTransitioning || stopIndex !== 0) return;
+
+    const sectionElement = sectionRef.current;
+    if (!sectionElement) return;
+
+    const ctx = gsap.context(() => {
+      const leftCol = sectionElement.querySelector(".lg\\:grid > div:first-child");
+      const rightCol = sectionElement.querySelector(".lg\\:grid > div:last-child");
+      const mobileCards = sectionElement.querySelectorAll(".lg\\:hidden > div");
+
+      if (leftCol && rightCol) {
+        gsap.to(leftCol, {
+          x: -120,
+          opacity: 0,
+          rotateY: 15,
+          scale: 0.95,
+          duration: 0.45,
+          ease: "power2.inOut",
+        });
+        gsap.to(rightCol, {
+          x: 120,
+          opacity: 0,
+          rotateY: -15,
+          scale: 0.95,
+          duration: 0.45,
+          ease: "power2.inOut",
+        });
+      }
+
+      if (mobileCards.length > 0) {
+        gsap.to(mobileCards, {
+          y: 40,
+          opacity: 0,
+          scale: 0.93,
+          duration: 0.45,
+          stagger: 0.05,
+          ease: "power2.inOut",
+        });
+      }
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [isTransitioning, stopIndex]);
+
   return (
     <section
       ref={sectionRef}
-      className="relative touch-none"
+      className={`relative ${stopIndex === maxStopIndex ? "" : "touch-none"}`}
       style={{ height: `calc(${STOP_FRAMES.length} * 100vh)` }}
     >
-      <div className="fixed inset-0 isolate h-screen w-screen overflow-hidden bg-[var(--page-bg)]">
+      <div className="sticky top-0 isolate h-screen w-screen overflow-hidden bg-[var(--page-bg)]">
         <div className="absolute inset-0">
           <FramePlayer
             ref={framePlayerRef}
@@ -580,7 +782,7 @@ export function HeroScrollytelling() {
             {storyStarted ? (
               <div className="relative flex min-h-0 flex-1 items-stretch">
                 <AnimatedText
-                  key={`${language}-${activeChapter.id}`}
+                  key={language}
                   chapter={activeChapter}
                   isTransitioning={isTransitioning}
                   language={language}
@@ -594,25 +796,245 @@ export function HeroScrollytelling() {
                     : "scale-100 translate-y-0 opacity-100 blur-0"
                 }`}
               >
-                <div className="flex w-full flex-col">
-                  <div className="story-copy-panel relative max-w-[20rem] sm:max-w-[22rem] md:max-w-[24rem]">
-                    <p className="story-eyebrow reveal-up text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-[var(--text-secondary)]">
-                      {BRAND_NAME}
-                    </p>
-                    <div className="reveal-up mt-4" style={{ animationDelay: "100ms" }}>
-                      <HeroAnimatedText
-                        text={introComplete ? introCopy.ready : introCopy.forming}
-                        fontSize="clamp(1.35rem, 3vw, 1.9rem)"
-                        minWeight={360}
-                        maxWeight={740}
-                        animationDuration={TITLE_BURST_DURATION}
-                        cycleDuration={TITLE_CYCLE_DURATION}
-                        delayMultiplier={0.08}
-                        align="left"
-                        className="hero-whisper"
-                        textClassName="story-title text-[var(--text-primary)]"
-                      />
+                {/* Desktop Layout (>= 1024px) - Original layout restored */}
+                <div className="hidden lg:grid grid-cols-2 gap-x-12 gap-y-12 w-full flex-1 min-h-0 items-stretch py-6">
+                  {/* Left Column: Title top, Sneaker Model + CTA bottom */}
+                  <div className="flex flex-col justify-between items-start h-full">
+                    {/* Top-Left: Title */}
+                    <div className="story-copy-panel relative max-w-[24rem] w-fit">
+                      <p className="story-eyebrow reveal-up text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-[var(--text-secondary)]">
+                        {BRAND_NAME}
+                      </p>
+                      <div className="reveal-up mt-4" style={{ animationDelay: "100ms" }}>
+                        <HeroAnimatedText
+                          text={introComplete ? introCopy.ready : introCopy.forming}
+                          fontSize="clamp(1.35rem, 3vw, 1.9rem)"
+                          minWeight={360}
+                          maxWeight={740}
+                          animationDuration={TITLE_BURST_DURATION}
+                          cycleDuration={TITLE_CYCLE_DURATION}
+                          delayMultiplier={0.08}
+                          align="left"
+                          className="hero-whisper"
+                          textClassName="story-title text-[var(--text-primary)]"
+                        />
+                      </div>
                     </div>
+
+                    {/* Bottom-Left: Sneaker Model + CTA */}
+                    <div className="flex flex-col items-center w-full md:-translate-x-[185px]">
+                      <ModelViewer
+                        url="/assets/3d-models/air-max-dn.glb"
+                        scale={1.2}
+                        className="w-full max-w-[340px] h-[260px]"
+                        rotationSpeed={0.006}
+                        cameraPosition={[0, 0, 2.3]}
+                      />
+                      <div className="mt-3 flex justify-center w-full">
+                        <a
+                          href="#obuca"
+                          className="cta-button group relative overflow-hidden rounded-full border border-[var(--border-soft)] bg-[var(--surface)] px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] active:scale-95 flex items-center gap-2"
+                        >
+                          {language === "sr" ? "Pogledaj obuću" : "View footwear"}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                          >
+                            <path d="M5 12h14" />
+                            <path d="m12 5 7 7-7 7" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Tech Fleece Model top + CTA, Short Title bottom */}
+                  <div className="flex flex-col justify-between items-end h-full text-right">
+                    {/* Top-Right: Tech Fleece Model + CTA */}
+                    <div className="flex flex-col items-center w-full md:-translate-y-8 md:translate-x-[170px]">
+                      <ModelViewer
+                        url="/assets/3d-models/tech-fleece.glb"
+                        scale={1.1}
+                        className="w-full max-w-[340px] h-[260px]"
+                        rotationSpeed={0.006}
+                        cameraPosition={[0, -0.18, 2.3]}
+                      />
+                      <div className="mt-3 flex justify-center w-full">
+                        <a
+                          href="#garderoba"
+                          className="cta-button group relative overflow-hidden rounded-full border border-[var(--border-soft)] bg-[var(--surface)] px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] active:scale-95 flex items-center gap-2"
+                        >
+                          {language === "sr" ? "Pogledaj garderobu" : "View apparel"}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                          >
+                            <path d="M5 12h14" />
+                            <path d="m12 5 7 7-7 7" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Bottom-Right: Short Title */}
+                    <div className="story-copy-panel story-copy-panel-right relative max-w-[24rem] w-fit flex flex-col items-end">
+                      <p className="story-eyebrow uppercase reveal-up text-[0.62rem] font-semibold tracking-[0.32em] text-[var(--text-secondary)]">
+                        Premium
+                      </p>
+                      <div className="reveal-up mt-4" style={{ animationDelay: "200ms" }}>
+                        <HeroAnimatedText
+                          text={
+                            language === "sr"
+                              ? "Oseti udobnost kroja."
+                              : "Feel the comfort of the cut."
+                          }
+                          fontSize="clamp(1.35rem, 3vw, 1.9rem)"
+                          minWeight={360}
+                          maxWeight={740}
+                          animationDuration={TITLE_BURST_DURATION}
+                          cycleDuration={TITLE_CYCLE_DURATION}
+                          delayMultiplier={0.08}
+                          align="right"
+                          className="hero-whisper justify-end"
+                          textClassName="story-title text-[var(--text-primary)] text-right"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile/Tablet Layout (< 1024px) - Centered Liquid Glass Cards */}
+                <div className="grid lg:hidden grid-cols-1 gap-y-8 w-full flex-1 min-h-0 items-stretch py-2">
+                  {/* Left Card Column */}
+                  <div className="flex flex-col justify-center items-start h-full w-full">
+                    <LiquidGlassCard active={stopIndex === 0 && !isTransitioning} className="w-full max-w-[280px] sm:max-w-[320px] flex flex-col justify-center items-center h-fit p-4 sm:p-6">
+                      {/* Top-Left: Title */}
+                      <div className="story-copy-panel relative max-w-[20rem] sm:max-w-[22rem] w-fit mb-4 self-start">
+                        <p className="story-eyebrow reveal-up text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-[var(--text-secondary)]">
+                          {BRAND_NAME}
+                        </p>
+                        <div className="reveal-up mt-4" style={{ animationDelay: "100ms" }}>
+                          <HeroAnimatedText
+                            text={introComplete ? introCopy.ready : introCopy.forming}
+                            fontSize="clamp(1.2rem, 2.5vw, 1.9rem)"
+                            minWeight={360}
+                            maxWeight={740}
+                            animationDuration={TITLE_BURST_DURATION}
+                            cycleDuration={TITLE_CYCLE_DURATION}
+                            delayMultiplier={0.08}
+                            align="left"
+                            className="hero-whisper"
+                            textClassName="story-title text-[var(--text-primary)]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Bottom-Left: Sneaker Model + CTA */}
+                      <div className="flex flex-col items-center w-full mt-2">
+                        <ModelViewer
+                          url="/assets/3d-models/air-max-dn.glb"
+                          scale={1.2}
+                          className="w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px]"
+                          rotationSpeed={0.006}
+                          cameraPosition={[0, 0, 2.3]}
+                        />
+                        <div className="mt-3 flex justify-center w-full">
+                          <a
+                            href="#obuca"
+                            className="cta-button group relative overflow-hidden rounded-full border border-[var(--border-soft)] bg-[var(--surface)] px-5 py-2.5 text-[0.7rem] md:text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] active:scale-95 flex items-center gap-2"
+                          >
+                            {language === "sr" ? "Pogledaj obuću" : "View footwear"}
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                            >
+                              <path d="M5 12h14" />
+                              <path d="m12 5 7 7-7 7" />
+                            </svg>
+                          </a>
+                        </div>
+                      </div>
+                    </LiquidGlassCard>
+                  </div>
+
+                  {/* Right Card Column */}
+                  <div className="flex flex-col justify-center items-end h-full w-full">
+                    <LiquidGlassCard active={stopIndex === 0 && !isTransitioning} className="w-full max-w-[280px] sm:max-w-[320px] flex flex-col justify-center items-center h-fit p-4 sm:p-6">
+                      {/* Top-Right: Tech Fleece Model + CTA */}
+                      <div className="flex flex-col items-center w-full mt-2 mb-4">
+                        <ModelViewer
+                          url="/assets/3d-models/tech-fleece.glb"
+                          scale={1.1}
+                          className="w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px]"
+                          rotationSpeed={0.006}
+                          cameraPosition={[0, -0.18, 2.3]}
+                        />
+                        <div className="mt-3 flex justify-center w-full">
+                          <a
+                            href="#garderoba"
+                            className="cta-button group relative overflow-hidden rounded-full border border-[var(--border-soft)] bg-[var(--surface)] px-5 py-2.5 text-[0.7rem] md:text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] active:scale-95 flex items-center gap-2"
+                          >
+                            {language === "sr" ? "Pogledaj garderobu" : "View apparel"}
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                            >
+                              <path d="M5 12h14" />
+                              <path d="m12 5 7 7-7 7" />
+                            </svg>
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Bottom-Right: Short Title */}
+                      <div className="story-copy-panel story-copy-panel-right relative max-w-[20rem] sm:max-w-[22rem] w-fit flex flex-col items-end self-end mt-2">
+                        <p className="story-eyebrow uppercase reveal-up text-[0.62rem] font-semibold tracking-[0.32em] text-[var(--text-secondary)]">
+                          Premium
+                        </p>
+                        <div className="reveal-up mt-4" style={{ animationDelay: "200ms" }}>
+                          <HeroAnimatedText
+                            text={
+                              language === "sr"
+                                ? "Oseti udobnost kroja."
+                                : "Feel the comfort of the cut."
+                            }
+                            fontSize="clamp(1.2rem, 2.5vw, 1.9rem)"
+                            minWeight={360}
+                            maxWeight={740}
+                            animationDuration={TITLE_BURST_DURATION}
+                            cycleDuration={TITLE_CYCLE_DURATION}
+                            delayMultiplier={0.08}
+                            align="right"
+                            className="hero-whisper justify-end"
+                            textClassName="story-title text-[var(--text-primary)] text-right"
+                          />
+                        </div>
+                      </div>
+                    </LiquidGlassCard>
                   </div>
                 </div>
               </div>

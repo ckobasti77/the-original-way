@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import { gsap } from "gsap";
 
 import type { Language } from "@/components/settings-provider";
 
 import type { Chapter } from "./content";
 import { HeroAnimatedText } from "./hero-animated-text";
+import { LiquidGlassCard } from "./liquid-glass-card";
 
 type AnimatedTextProps = {
   chapter: Chapter;
@@ -59,98 +61,194 @@ export function AnimatedText({
   isTransitioning,
   language,
 }: AnimatedTextProps) {
-  const [isMounted, setIsMounted] = useState(false);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setIsMounted(true);
-    }, 30);
+    const leftPanel = leftPanelRef.current;
+    const rightPanel = rightPanelRef.current;
+    if (!leftPanel || !rightPanel) return;
 
-    return () => window.clearTimeout(timer);
-  }, []);
+    const ctx = gsap.context(() => {
+      if (isTransitioning) {
+        // Exit animation
+        gsap.to(leftPanel, {
+          x: -120,
+          opacity: 0,
+          rotateY: 15,
+          scale: 0.95,
+          duration: 0.45,
+          ease: "power2.inOut",
+          overwrite: "auto",
+        });
 
-  const active = isMounted && !isTransitioning;
+        gsap.to(rightPanel, {
+          x: 120,
+          opacity: 0,
+          rotateY: -15,
+          scale: 0.95,
+          duration: 0.45,
+          ease: "power2.inOut",
+          overwrite: "auto",
+        });
+      } else {
+        // Entry animation
+        gsap.fromTo(
+          leftPanel,
+          {
+            x: -150,
+            opacity: 0,
+            rotateY: 20,
+            scale: 0.93,
+          },
+          {
+            x: 0,
+            opacity: 1,
+            rotateY: 0,
+            scale: 1,
+            duration: 0.85,
+            ease: "power4.out",
+            overwrite: "auto",
+          }
+        );
+
+        gsap.fromTo(
+          rightPanel,
+          {
+            x: 150,
+            opacity: 0,
+            rotateY: -20,
+            scale: 0.93,
+          },
+          {
+            x: 0,
+            opacity: 1,
+            rotateY: 0,
+            scale: 1,
+            duration: 0.85,
+            ease: "power4.out",
+            overwrite: "auto",
+            delay: 0.08,
+          }
+        );
+
+        // Stagger details (subtitle & CTA) inside left panel
+        const leftChildren = leftPanel.querySelectorAll(".story-subcopy, .story-cta");
+        gsap.fromTo(
+          leftChildren,
+          { opacity: 0, y: 15 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.65,
+            stagger: 0.1,
+            ease: "power3.out",
+            delay: 0.2,
+            overwrite: "auto",
+          }
+        );
+
+        // Stagger details inside right panel
+        const rightChildren = rightPanel.querySelectorAll(".story-subcopy, .story-cta");
+        gsap.fromTo(
+          rightChildren,
+          { opacity: 0, y: 15 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.65,
+            stagger: 0.1,
+            ease: "power3.out",
+            delay: 0.28,
+            overwrite: "auto",
+          }
+        );
+      }
+    }, [leftPanel, rightPanel]);
+
+    return () => ctx.revert();
+  }, [isTransitioning, chapter.id]);
 
   return (
     <div aria-live="polite" className="pointer-events-none absolute inset-0">
+      {/* LEFT PANEL */}
       <div
-        className={`story-float story-copy-panel absolute left-0 top-[14vh] max-w-[min(88vw,29rem)] px-6 py-5 transition-all duration-400 ease-[cubic-bezier(0.3,0,0.2,1)] sm:left-2 sm:max-w-[30rem] md:left-4 md:px-10 md:py-8 ${
-          active
-            ? "translate-y-0 scale-100 opacity-100 blur-0"
-            : "translate-y-2 scale-[0.93] opacity-0 blur-[3px]"
-        }`}
-        style={{ transitionDelay: isTransitioning ? "0ms" : "80ms" }}
+        ref={leftPanelRef}
+        className="story-float absolute left-0 top-[14vh] max-w-[min(88vw,29rem)] sm:left-2 sm:max-w-[30rem] md:left-4"
+        style={{ perspective: 1000 }}
       >
-        <div className="max-w-[19rem] sm:max-w-[21rem]">
-          <HeroAnimatedText
-            text={chapter.leftTitle[language]}
-            fontSize="clamp(1.9rem,4.3vw,3.45rem)"
-            minWeight={360}
-            maxWeight={740}
-            animationDuration={TITLE_BURST_DURATION}
-            cycleDuration={TITLE_CYCLE_DURATION}
-            delayMultiplier={0.08}
-            phaseOffset={0}
-            align="left"
-            className="hero-whisper"
-            textClassName="story-title text-[var(--text-primary)]"
-          />
-        </div>
+        <LiquidGlassCard active={!isTransitioning} className="w-full h-fit px-6 py-5 md:px-10 md:py-8 text-left items-start">
+          <div className="max-w-[19rem] sm:max-w-[21rem]">
+            <HeroAnimatedText
+              text={chapter.leftTitle[language]}
+              fontSize="clamp(1.5rem,3.2vw,2.45rem)"
+              minWeight={360}
+              maxWeight={740}
+              animationDuration={TITLE_BURST_DURATION}
+              cycleDuration={TITLE_CYCLE_DURATION}
+              delayMultiplier={0.08}
+              phaseOffset={0}
+              align="left"
+              className="hero-whisper"
+              textClassName="story-title text-[var(--text-primary)]"
+            />
+          </div>
 
-        {chapter.leftSubtitle ? (
-          <p className="story-subcopy mt-4 max-w-[17rem] text-sm leading-6 sm:text-[0.98rem]">
-            {chapter.leftSubtitle[language]}
-          </p>
-        ) : null}
+          {chapter.leftSubtitle ? (
+            <p className="story-subcopy mt-4 max-w-[17rem] text-sm leading-6 sm:text-[0.98rem]">
+              {chapter.leftSubtitle[language]}
+            </p>
+          ) : null}
 
-        <div className="mt-6">
-          <StoryCta
-            href={chapter.ctaPrimary.href}
-            label={chapter.ctaPrimary.label[language]}
-            ariaLabel={chapter.ctaPrimary.ariaLabel[language]}
-            variant="primary"
-          />
-        </div>
+          <div className="mt-6">
+            <StoryCta
+              href={chapter.ctaPrimary.href}
+              label={chapter.ctaPrimary.label[language]}
+              ariaLabel={chapter.ctaPrimary.ariaLabel[language]}
+              variant="primary"
+            />
+          </div>
+        </LiquidGlassCard>
       </div>
 
+      {/* RIGHT PANEL */}
       <div
-        className={`story-float story-copy-panel story-copy-panel-right absolute bottom-[15vh] right-0 max-w-[min(88vw,27rem)] px-6 py-5 text-right transition-all duration-400 ease-[cubic-bezier(0.3,0,0.2,1)] sm:right-2 sm:max-w-[28rem] md:right-4 md:px-10 md:py-8 ${
-          active
-            ? "translate-y-0 scale-100 opacity-100 blur-0"
-            : "translate-y-2 scale-[0.93] opacity-0 blur-[3px]"
-        }`}
-        style={{ transitionDelay: isTransitioning ? "0ms" : "160ms" }}
+        ref={rightPanelRef}
+        className="story-float absolute bottom-[15vh] right-0 max-w-[min(88vw,27rem)] sm:right-2 sm:max-w-[28rem] md:right-4"
+        style={{ perspective: 1000 }}
       >
-        <div className="ml-auto max-w-[17rem] sm:max-w-[19rem]">
-          <HeroAnimatedText
-            text={chapter.rightTitle[language]}
-            fontSize="clamp(1.7rem,3.8vw,3.1rem)"
-            minWeight={360}
-            maxWeight={740}
-            animationDuration={TITLE_BURST_DURATION}
-            cycleDuration={TITLE_CYCLE_DURATION}
-            delayMultiplier={0.08}
-            phaseOffset={TITLE_CYCLE_DURATION / 2}
-            align="right"
-            className="hero-whisper"
-            textClassName="story-title text-right text-[var(--text-primary)]"
-          />
-        </div>
+        <LiquidGlassCard active={!isTransitioning} className="w-full h-fit px-6 py-5 md:px-10 md:py-8 text-right items-end">
+          <div className="ml-auto max-w-[17rem] sm:max-w-[19rem] w-full text-right flex justify-end">
+            <HeroAnimatedText
+              text={chapter.rightTitle[language]}
+              fontSize="clamp(1.35rem,2.8vw,2.2rem)"
+              minWeight={360}
+              maxWeight={740}
+              animationDuration={TITLE_BURST_DURATION}
+              cycleDuration={TITLE_CYCLE_DURATION}
+              delayMultiplier={0.08}
+              phaseOffset={TITLE_CYCLE_DURATION / 2}
+              align="right"
+              className="hero-whisper justify-end"
+              textClassName="story-title text-right text-[var(--text-primary)]"
+            />
+          </div>
 
-        {chapter.rightSubtitle ? (
-          <p className="story-subcopy mt-4 ml-auto max-w-[16rem] text-sm leading-6 sm:text-[0.96rem]">
-            {chapter.rightSubtitle[language]}
-          </p>
-        ) : null}
+          {chapter.rightSubtitle ? (
+            <p className="story-subcopy mt-4 ml-auto max-w-[16rem] text-sm leading-6 sm:text-[0.96rem]">
+              {chapter.rightSubtitle[language]}
+            </p>
+          ) : null}
 
-        <div className="mt-6 flex justify-end">
-          <StoryCta
-            href={chapter.ctaSecondary.href}
-            label={chapter.ctaSecondary.label[language]}
-            ariaLabel={chapter.ctaSecondary.ariaLabel[language]}
-            variant="secondary"
-          />
-        </div>
+          <div className="mt-6 flex justify-end">
+            <StoryCta
+              href={chapter.ctaSecondary.href}
+              label={chapter.ctaSecondary.label[language]}
+              ariaLabel={chapter.ctaSecondary.ariaLabel[language]}
+              variant="secondary"
+            />
+          </div>
+        </LiquidGlassCard>
       </div>
     </div>
   );

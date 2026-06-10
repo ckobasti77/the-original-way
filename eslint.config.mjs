@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "convex/_generated/**",
+    "public/draco/**",
+    "seed-local.js",
+    "test-screenshot.js",
   ]),
 ]);
 

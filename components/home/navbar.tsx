@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useSettings } from "@/components/settings-provider";
 import logo from "@/public/logos/logo.png";
@@ -106,12 +106,36 @@ export function Navbar() {
   const { language } = useSettings();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const copy = UI_COPY[language];
+
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const burgerButtonRef = useRef<HTMLButtonElement>(null);
+
+  const toggleAccordion = (href: string) => {
+    setExpandedSection((prev) => (prev === href ? null : href));
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setExpandedSection(null);
+  };
+
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
 
   useEffect(() => {
     const handleStart = () => {
       setIsHidden(true);
-      setDrawerOpen(false);
+      closeDrawer();
     };
     const handleEnd = () => {
       setIsHidden(false);
@@ -133,7 +157,7 @@ export function Navbar() {
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setDrawerOpen(false);
+        closeDrawer();
       }
     };
 
@@ -141,6 +165,34 @@ export function Navbar() {
 
     return () => {
       window.removeEventListener("keydown", handleEscape);
+    };
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    if (!drawerOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (sidebarRef.current && sidebarRef.current.contains(event.target as Node)) {
+        return;
+      }
+      if (
+        burgerButtonRef.current &&
+        burgerButtonRef.current.contains(event.target as Node)
+      ) {
+        return;
+      }
+
+      closeDrawer();
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
     };
   }, [drawerOpen]);
 
@@ -152,7 +204,7 @@ export function Navbar() {
           : "duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-0 opacity-100"
       }`}
     >
-      <div className="pointer-events-auto relative h-20 w-full overflow-hidden">
+      <div className="pointer-events-auto relative h-20 w-full">
         {/* Layered glass background with a bottom fade-out */}
         <div 
           aria-hidden="true"
@@ -165,7 +217,7 @@ export function Navbar() {
             WebkitMaskImage: `${NAVBAR_CENTER_MASK}, ${NAVBAR_BOTTOM_MASK}`,
           }}
         />
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 md:px-12">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 lg:px-12">
           {/* Left Side: Logo and first 3 Navlinks */}
           <div className="flex items-center gap-8 lg:gap-12">
             <Link
@@ -187,7 +239,7 @@ export function Navbar() {
 
             <nav
               aria-label={copy.desktopNavigation}
-              className="hidden items-center gap-2 md:flex"
+              className="hidden items-center gap-2 lg:flex"
             >
               {NAV_LINKS.slice(0, 3).map((link) =>
                 link.type === "simple" ? (
@@ -214,7 +266,7 @@ export function Navbar() {
           <div className="flex items-center gap-6 lg:gap-8">
             <nav
               aria-label={copy.desktopNavigation}
-              className="hidden items-center gap-2 md:flex"
+              className="hidden items-center gap-2 lg:flex"
             >
               {NAV_LINKS.slice(3, 6).map((link) =>
                 link.type === "simple" ? (
@@ -240,12 +292,13 @@ export function Navbar() {
               <LanguageToggle />
               <ThemeToggle />
               <button
+                ref={burgerButtonRef}
                 type="button"
                 aria-controls="mobile-navigation"
                 aria-expanded={drawerOpen}
                 aria-label={drawerOpen ? copy.closeMenu : copy.openMenu}
                 onClick={() => setDrawerOpen((currentState) => !currentState)}
-                className="nav-text inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] md:hidden"
+                className="nav-text inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] lg:hidden"
               >
                 <svg
                   aria-hidden="true"
@@ -269,63 +322,165 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      <div className="pointer-events-auto mx-auto w-full max-w-7xl px-4">
-        <div
-          id="mobile-navigation"
-          className={`overflow-hidden transition-[max-height,opacity,margin] duration-300 md:hidden ${
-            drawerOpen ? "mt-3 max-h-[42rem] opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="glass-panel-solid rounded-[1.6rem] px-5 py-5 shadow-[0_26px_72px_rgba(var(--shadow-rgb),0.2)]">
-            <nav
-              aria-label={copy.mobileNavigation}
-              className="grid gap-6"
+      {/* Backdrop Scrim */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/45 backdrop-blur-sm transition-opacity duration-500 lg:hidden ${
+          drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={closeDrawer}
+        aria-hidden="true"
+      />
+
+      {/* Right Sidebar Drawer */}
+      <div
+        ref={sidebarRef}
+        id="mobile-navigation"
+        className={`fixed right-0 top-0 bottom-0 z-50 flex h-screen w-full sm:w-[420px] max-w-[85vw] flex-col border-l border-[var(--border-soft)] bg-gradient-to-b from-[var(--surface-elevated)] to-[var(--surface-opaque)] backdrop-blur-[32px] shadow-[-25px_0_60px_rgba(var(--shadow-rgb),0.18)] transition-transform duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto lg:hidden ${
+          drawerOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Drawer Header */}
+        <div className="flex h-20 items-center justify-between border-b border-[var(--border-soft)] px-6">
+          <Link
+            href="/"
+            onClick={closeDrawer}
+            scroll={false}
+            className="inline-flex items-center justify-center transition hover:opacity-85"
+            aria-label={BRAND_NAME}
+          >
+            <div className="relative h-12 w-12 flex items-center justify-center">
+              <Image
+                src={logo}
+                alt={BRAND_NAME}
+                priority
+                sizes="48px"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          </Link>
+          <button
+            type="button"
+            onClick={closeDrawer}
+            aria-label={copy.closeMenu}
+            className="group flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-primary)] active:scale-95"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              {NAV_LINKS.map((link) => {
-                if (link.type === "simple") {
-                  return (
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Drawer Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-8">
+          <nav aria-label={copy.mobileNavigation} className="flex flex-col gap-6">
+            {NAV_LINKS.map((link, index) => {
+              // Staggered slide/fade animation values
+              const delay = drawerOpen ? `${index * 60 + 100}ms` : "0ms";
+              const transitionStyle = {
+                transitionDelay: delay,
+              };
+
+              const animateClass = `transform transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                drawerOpen
+                  ? "translate-x-0 opacity-100"
+                  : "translate-x-12 opacity-0"
+              }`;
+
+              if (link.type === "simple") {
+                return (
+                  <div key={link.href} className={animateClass} style={transitionStyle}>
                     <Link
-                      key={link.href}
                       href={link.href}
                       prefetch={false}
-                      onClick={() => setDrawerOpen(false)}
-                      className="nav-text py-1 text-[0.74rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-primary)] transition hover:opacity-80"
+                      onClick={closeDrawer}
+                      className="nav-text block py-2 text-[0.82rem] font-bold uppercase tracking-[0.24em] text-[var(--text-primary)] transition hover:text-[var(--accent)]"
                     >
                       {link.label[language]}
                     </Link>
-                  );
-                } else {
-                  return (
-                    <div key={link.href} className="grid gap-2.5">
-                      <span className="nav-text text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">
-                        {link.label[language]}
-                      </span>
-                      <div className="grid gap-2 pl-3 border-l border-[var(--border-soft)]">
-                        {link.items?.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            prefetch={false}
-                            aria-label={item.ariaLabel[language]}
-                            onClick={() => setDrawerOpen(false)}
-                            className="rounded-[0.9rem] border border-transparent bg-[rgba(var(--accent-rgb),0.04)] px-3.5 py-2.5 hover:border-[var(--border-soft)] hover:bg-[rgba(var(--accent-rgb),0.08)] transition"
-                          >
-                            <p className="nav-text text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                              {item.label[language]}
-                            </p>
-                            <p className="story-subcopy mt-1.5 text-xs leading-5">
-                              {item.description[language]}
-                            </p>
-                          </Link>
-                        ))}
-                      </div>
+                  </div>
+                );
+              }
+
+              const isExpanded = expandedSection === link.href;
+
+              return (
+                <div
+                  key={link.href}
+                  className={`flex flex-col ${animateClass}`}
+                  style={transitionStyle}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion(link.href)}
+                    aria-expanded={isExpanded}
+                    className="flex w-full items-center justify-between py-2 text-[0.82rem] font-bold uppercase tracking-[0.24em] text-[var(--text-primary)] transition hover:text-[var(--accent)]"
+                  >
+                    <span>{link.label[language]}</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      className={`h-4 w-4 text-[var(--text-secondary)] transition-transform duration-300 ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+
+                  <div
+                    className={`grid transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      isExpanded
+                        ? "grid-rows-[1fr] opacity-100 mt-2"
+                        : "grid-rows-[0fr] opacity-0 pointer-events-none"
+                    }`}
+                  >
+                    <div className="overflow-hidden pl-3 border-l border-[var(--border-soft)] flex flex-col gap-3">
+                      {link.items?.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          prefetch={false}
+                          aria-label={item.ariaLabel[language]}
+                          onClick={closeDrawer}
+                          className="group block rounded-[0.9rem] border border-[var(--border-soft)] bg-[rgba(var(--accent-rgb),0.02)] px-4 py-3 hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.06)] transition-all duration-300"
+                        >
+                          <p className="nav-text text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+                            {item.label[language]}
+                          </p>
+                          <p className="story-subcopy mt-1 text-xs font-normal leading-relaxed text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
+                            {item.description[language]}
+                          </p>
+                        </Link>
+                      ))}
                     </div>
-                  );
-                }
-              })}
-            </nav>
+                  </div>
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Drawer Footer */}
+        <div className="border-t border-[var(--border-soft)] px-6 py-6 bg-[rgba(var(--shadow-rgb),0.02)]">
+          <div className="flex items-center justify-between mb-4">
+            <LanguageToggle />
+            <ThemeToggle />
           </div>
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--text-muted)] text-center mt-2">
+            © 2026 {BRAND_NAME} • EST.
+          </p>
         </div>
       </div>
     </header>

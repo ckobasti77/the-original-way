@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { gsap } from "gsap";
 
 type HeroAnimatedTextProps = {
   text: string;
@@ -48,13 +49,36 @@ export function HeroAnimatedText({
       return;
     }
 
-    const spans = containerRef.current.querySelectorAll("span");
-    const numLetters = spans.length;
+    const innerSpans = containerRef.current.querySelectorAll(".char-inner");
+    const numLetters = innerSpans.length;
 
-    spans.forEach((span, index) => {
+    innerSpans.forEach((span, index) => {
+      const element = span as HTMLElement;
       const mappedIndex = index - (numLetters - 1) / 2;
-      span.style.animationDelay = `${phaseOffset + mappedIndex * delayMultiplier}s`;
+      element.style.animationDelay = `${phaseOffset + mappedIndex * delayMultiplier}s`;
     });
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        innerSpans,
+        {
+          yPercent: 110,
+          rotate: 6,
+          opacity: 0,
+        },
+        {
+          yPercent: 0,
+          rotate: 0,
+          opacity: 1,
+          duration: 1.0,
+          stagger: 0.02,
+          ease: "power4.out",
+          overwrite: "auto",
+        }
+      );
+    }, containerRef);
+
+    return () => ctx.revert();
   }, [text, delayMultiplier, phaseOffset]);
 
   return (
@@ -85,14 +109,21 @@ export function HeroAnimatedText({
           <span
             key={`${character}-${index}`}
             aria-hidden="true"
-            style={{
-              animation: `breath ${cycleDuration}s cubic-bezier(0.37, 0, 0.63, 1) infinite`,
-              animationFillMode: "both",
-              fontVariationSettings: `"wght" ${minWeight}`,
-              fontWeight: minWeight,
-            }}
+            className="inline-block overflow-hidden"
+            style={{ verticalAlign: "bottom" }}
           >
-            {character === " " ? "\u00A0" : character}
+            <span
+              className="char-inner inline-block"
+              style={{
+                animation: `breath ${cycleDuration}s cubic-bezier(0.37, 0, 0.63, 1) infinite`,
+                animationFillMode: "both",
+                fontVariationSettings: `"wght" ${minWeight}`,
+                fontWeight: minWeight,
+                transformOrigin: "bottom left",
+              }}
+            >
+              {character === " " ? "\u00A0" : character}
+            </span>
           </span>
         ))}
 
@@ -116,7 +147,7 @@ export function HeroAnimatedText({
           }
 
           @media (prefers-reduced-motion: reduce) {
-            span {
+            .char-inner {
               animation: none !important;
               font-variation-settings: "wght" ${maxWeight};
               font-weight: ${maxWeight};
