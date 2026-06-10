@@ -12,6 +12,7 @@ import {
 import { useSettings } from "@/components/settings-provider";
 
 import { AnimatedText } from "./animated-text";
+import { HeroAnimatedText } from "./hero-animated-text";
 import { BRAND_NAME, CHAPTERS } from "./content";
 import { FramePlayer, type FramePlayerHandle } from "./frame-player";
 
@@ -27,8 +28,10 @@ const FRAME_SEGMENTS = [
 const STEP_TRIGGER_DELTA = 56;
 const TOUCH_TRIGGER_DELTA = 52;
 const INTRO_DURATION_MS = 2000;
-const STEP_TRANSITION_MS = 1000;
+const STEP_TRANSITION_MS = 750;
 const SCROLL_EPSILON = 2;
+const TITLE_BURST_DURATION = 1.8;
+const TITLE_CYCLE_DURATION = 7.2;
 
 const INTRO_COPY = {
   sr: {
@@ -568,7 +571,7 @@ export function HeroScrollytelling() {
             initialFrame={INTRO_START_FRAME}
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,rgba(255,255,255,0.06),transparent_28%),linear-gradient(180deg,rgba(2,8,18,0.04)_0%,rgba(2,8,18,0.12)_46%,rgba(2,8,18,0.5)_100%)]" />
+          <div className="cinematic-scrim absolute inset-0" />
           <div className="absolute inset-x-0 bottom-0 h-[30vh] bg-[linear-gradient(180deg,rgba(4,9,17,0)_0%,rgba(4,9,17,0.52)_100%)]" />
         </div>
 
@@ -579,44 +582,37 @@ export function HeroScrollytelling() {
                 <AnimatedText
                   key={`${language}-${activeChapter.id}`}
                   chapter={activeChapter}
-                  chapterCount={CHAPTERS.length}
-                  chapterIndex={activeChapterIndex}
                   isTransitioning={isTransitioning}
                   language={language}
                 />
               </div>
             ) : (
-              <div className={`flex flex-1 transition-all duration-400 ease-[cubic-bezier(0.3,0,0.2,1)] ${
-                isTransitioning
-                  ? "scale-[0.93] translate-y-2 opacity-0 blur-[3px]"
-                  : "scale-100 translate-y-0 opacity-100 blur-0"
-              }`}>
-                <div className="flex w-full flex-col justify-between">
-                  <div className="max-w-[18rem]">
-                    <p className="reveal-up text-[0.62rem] uppercase tracking-[0.34em] text-[var(--text-muted)]">
+              <div
+                className={`flex flex-1 transition-all duration-400 ease-[cubic-bezier(0.3,0,0.2,1)] ${
+                  isTransitioning
+                    ? "scale-[0.93] translate-y-2 opacity-0 blur-[3px]"
+                    : "scale-100 translate-y-0 opacity-100 blur-0"
+                }`}
+              >
+                <div className="flex w-full flex-col">
+                  <div className="story-copy-panel relative max-w-[20rem] sm:max-w-[22rem] md:max-w-[24rem]">
+                    <p className="story-eyebrow reveal-up text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-[var(--text-secondary)]">
                       {BRAND_NAME}
                     </p>
-                    <p
-                      className="reveal-up hero-whisper mt-4 font-display text-[1.55rem] leading-[0.98] tracking-[0.06em] text-[var(--text-primary)] sm:text-[1.85rem] md:text-[2.1rem]"
-                      style={{ animationDelay: "100ms" }}
-                    >
-                      {introComplete ? introCopy.ready : introCopy.forming}
-                    </p>
-                  </div>
-
-                  <div className="self-end text-right">
-                    <p
-                      className="reveal-up text-[0.62rem] uppercase tracking-[0.32em] text-[var(--text-muted)]"
-                      style={{ animationDelay: "160ms" }}
-                    >
-                      00 / 03
-                    </p>
-                    <p
-                      className="reveal-up mt-4 max-w-[14rem] text-sm leading-7 text-[var(--text-secondary)] sm:text-[0.95rem]"
-                      style={{ animationDelay: "220ms" }}
-                    >
-                      {introComplete ? introCopy.sequence : introCopy.pacing}
-                    </p>
+                    <div className="reveal-up mt-4" style={{ animationDelay: "100ms" }}>
+                      <HeroAnimatedText
+                        text={introComplete ? introCopy.ready : introCopy.forming}
+                        fontSize="clamp(1.35rem, 3vw, 1.9rem)"
+                        minWeight={360}
+                        maxWeight={740}
+                        animationDuration={TITLE_BURST_DURATION}
+                        cycleDuration={TITLE_CYCLE_DURATION}
+                        delayMultiplier={0.08}
+                        align="left"
+                        className="hero-whisper"
+                        textClassName="story-title text-[var(--text-primary)]"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -627,7 +623,7 @@ export function HeroScrollytelling() {
               <button
                 onClick={handleNextCheckpoint}
                 disabled={stopIndex >= maxStopIndex || !introComplete || isTransitioning}
-                className="group flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] backdrop-blur-md text-[var(--text-primary)] transition-all duration-300 hover:scale-105 active:scale-95 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] disabled:pointer-events-none disabled:opacity-25"
+                className="checkpoint-button group flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] text-[var(--text-primary)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] active:scale-95 disabled:pointer-events-none disabled:opacity-25"
                 title={language === "sr" ? "Sledeći korak" : "Next step"}
                 aria-label={language === "sr" ? "Sledeći korak" : "Next step"}
               >
@@ -648,7 +644,7 @@ export function HeroScrollytelling() {
               <button
                 onClick={handleLastCheckpoint}
                 disabled={stopIndex >= maxStopIndex || !introComplete || isTransitioning}
-                className="group flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] backdrop-blur-md text-[var(--text-primary)] transition-all duration-300 hover:scale-105 active:scale-95 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] disabled:pointer-events-none disabled:opacity-25"
+                className="checkpoint-button group flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] text-[var(--text-primary)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] active:scale-95 disabled:pointer-events-none disabled:opacity-25"
                 title={language === "sr" ? "Kraj priče" : "End of story"}
                 aria-label={language === "sr" ? "Kraj priče" : "End of story"}
               >
@@ -668,28 +664,6 @@ export function HeroScrollytelling() {
               </button>
             </div>
 
-            <div className="pointer-events-none mt-6 flex items-center justify-between gap-4 text-[0.62rem] uppercase tracking-[0.3em] text-[var(--text-muted)]">
-              <div>{storyStarted ? activeChapter.eyebrow[language] : BRAND_NAME}</div>
-              <div className="flex items-center gap-2" aria-hidden="true">
-                {STOP_FRAMES.map((_, index) => (
-                  <span
-                    key={index}
-                    className={`block h-px w-8 transition ${
-                      index <= stopIndex
-                        ? "bg-[var(--text-primary)] opacity-100"
-                        : "bg-[var(--text-muted)] opacity-35"
-                    }`}
-                  />
-                ))}
-              </div>
-              <div>
-                {storyStarted
-                  ? `${String(stopIndex).padStart(2, "0")} / 03`
-                  : introComplete
-                    ? introCopy.statusReady
-                    : introCopy.statusPlaying}
-              </div>
-            </div>
           </div>
         </div>
       </div>

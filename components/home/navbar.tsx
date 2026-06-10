@@ -10,6 +10,15 @@ import logo from "@/public/logos/logo.png";
 import { BRAND_NAME, NAV_LINKS, UI_COPY } from "./content";
 import { DropdownNavItem } from "./dropdown-nav-item";
 
+const NAVBAR_BACKGROUND_IMAGE =
+  "linear-gradient(var(--navbar-bg), var(--navbar-bg))";
+
+const NAVBAR_CENTER_MASK =
+  "var(--navbar-center-mask, linear-gradient(to right, black 0%, black 31%, transparent 43%, transparent 57%, black 69%, black 100%))";
+
+const NAVBAR_BOTTOM_MASK =
+  "linear-gradient(to bottom, black 0%, black 66%, transparent 100%)";
+
 function ThemeToggle() {
   const { language, theme, toggleTheme } = useSettings();
   const copy = UI_COPY[language];
@@ -20,7 +29,7 @@ function ThemeToggle() {
       type="button"
       aria-label={isLight ? copy.switchToDark : copy.switchToLight}
       onClick={toggleTheme}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] hover:bg-[rgba(var(--accent-rgb),0.06)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] transition"
+      className="nav-text inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
     >
       {isLight ? (
         <svg
@@ -58,7 +67,7 @@ function LanguageToggle() {
 
   return (
     <div
-      className="inline-flex items-center gap-1.5 text-[0.7rem] font-sans tracking-[0.2em] text-[var(--text-secondary)] mr-2"
+      className="nav-text mr-2 inline-flex items-center gap-1.5 text-[0.7rem] font-sans font-semibold tracking-[0.18em] text-[var(--text-secondary)]"
       aria-label={copy.language}
       role="group"
     >
@@ -143,16 +152,20 @@ export function Navbar() {
           : "duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-0 opacity-100"
       }`}
     >
-      <div className="pointer-events-auto relative w-full h-20">
-        {/* Glass effect background layer with masked blur */}
+      <div className="pointer-events-auto relative h-20 w-full overflow-hidden">
+        {/* Layered glass background with a bottom fade-out */}
         <div 
-          className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--navbar-bg)_0%,var(--navbar-bg)_32%,transparent_48%,transparent_52%,var(--navbar-bg)_68%,var(--navbar-bg)_100%)] backdrop-blur-[12px] transition-all duration-500" 
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[length:100%_100%] bg-no-repeat shadow-[0_1px_0_rgba(var(--shadow-rgb),0.08)] backdrop-blur-[14px] transition-all duration-500" 
           style={{
-            maskImage: "linear-gradient(to right, black 0%, black 32%, transparent 48%, transparent 52%, black 68%, black 100%)",
-            WebkitMaskImage: "linear-gradient(to right, black 0%, black 32%, transparent 48%, transparent 52%, black 68%, black 100%)"
+            backgroundImage: NAVBAR_BACKGROUND_IMAGE,
+            maskComposite: "intersect",
+            maskImage: `${NAVBAR_CENTER_MASK}, ${NAVBAR_BOTTOM_MASK}`,
+            WebkitMaskComposite: "source-in",
+            WebkitMaskImage: `${NAVBAR_CENTER_MASK}, ${NAVBAR_BOTTOM_MASK}`,
           }}
         />
-        <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6 md:px-12">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 md:px-12">
           {/* Left Side: Logo and first 3 Navlinks */}
           <div className="flex items-center gap-8 lg:gap-12">
             <Link
@@ -182,7 +195,7 @@ export function Navbar() {
                     key={link.href}
                     href={link.href}
                     prefetch={false}
-                    className="inline-flex min-h-10 items-center px-3 text-[0.78rem] uppercase tracking-[0.3em] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] transition"
+                    className="nav-text inline-flex min-h-10 items-center px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
                   >
                     {link.label[language]}
                   </Link>
@@ -209,7 +222,7 @@ export function Navbar() {
                     key={link.href}
                     href={link.href}
                     prefetch={false}
-                    className="inline-flex min-h-10 items-center px-3 text-[0.78rem] uppercase tracking-[0.3em] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] transition"
+                    className="nav-text inline-flex min-h-10 items-center px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
                   >
                     {link.label[language]}
                   </Link>
@@ -232,7 +245,7 @@ export function Navbar() {
                 aria-expanded={drawerOpen}
                 aria-label={drawerOpen ? copy.closeMenu : copy.openMenu}
                 onClick={() => setDrawerOpen((currentState) => !currentState)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] hover:bg-[rgba(var(--accent-rgb),0.06)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] transition md:hidden"
+                className="nav-text inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] md:hidden"
               >
                 <svg
                   aria-hidden="true"
@@ -277,7 +290,7 @@ export function Navbar() {
                       href={link.href}
                       prefetch={false}
                       onClick={() => setDrawerOpen(false)}
-                      className="text-[0.74rem] uppercase tracking-[0.32em] text-[var(--text-primary)] hover:opacity-80 transition py-1"
+                      className="nav-text py-1 text-[0.74rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-primary)] transition hover:opacity-80"
                     >
                       {link.label[language]}
                     </Link>
@@ -285,7 +298,7 @@ export function Navbar() {
                 } else {
                   return (
                     <div key={link.href} className="grid gap-2.5">
-                      <span className="text-[0.66rem] uppercase tracking-[0.32em] text-[var(--text-muted)] font-medium">
+                      <span className="nav-text text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">
                         {link.label[language]}
                       </span>
                       <div className="grid gap-2 pl-3 border-l border-[var(--border-soft)]">
@@ -298,10 +311,10 @@ export function Navbar() {
                             onClick={() => setDrawerOpen(false)}
                             className="rounded-[0.9rem] border border-transparent bg-[rgba(var(--accent-rgb),0.04)] px-3.5 py-2.5 hover:border-[var(--border-soft)] hover:bg-[rgba(var(--accent-rgb),0.08)] transition"
                           >
-                            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[var(--text-muted)]">
+                            <p className="nav-text text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                               {item.label[language]}
                             </p>
-                            <p className="mt-1.5 text-xs leading-5 text-[var(--text-primary)]">
+                            <p className="story-subcopy mt-1.5 text-xs leading-5">
                               {item.description[language]}
                             </p>
                           </Link>

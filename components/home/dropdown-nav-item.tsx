@@ -18,7 +18,7 @@ export function DropdownNavItem({
       <Link
         href={link.href}
         prefetch={false}
-        className="inline-flex min-h-10 items-center gap-1.5 px-3 text-[0.78rem] uppercase tracking-[0.3em] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
+        className="nav-text inline-flex min-h-10 items-center gap-1.5 px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
       >
         <span>{link.label[language]}</span>
         <svg
@@ -34,7 +34,7 @@ export function DropdownNavItem({
         </svg>
       </Link>
       <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-[22rem] -translate-x-1/2 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
-        <div className="glass-panel rounded-[1.6rem] p-2.5 shadow-[0_20px_50px_rgba(var(--shadow-rgb),0.15)]">
+        <div className="glass-panel rounded-[1.4rem] p-2.5 shadow-[0_24px_58px_rgba(var(--shadow-rgb),0.2)]">
           <div className="grid gap-1.5">
             {link.items?.map((item) => (
               <Link
@@ -44,10 +44,10 @@ export function DropdownNavItem({
                 aria-label={item.ariaLabel[language]}
                 className="rounded-[1.1rem] border border-transparent px-4 py-3 transition hover:border-[var(--border-soft)] hover:bg-[rgba(var(--accent-rgb),0.06)] focus-visible:border-[var(--border-strong)] focus-visible:bg-[rgba(var(--accent-rgb),0.06)]"
               >
-                <p className="text-[0.7rem] uppercase tracking-[0.3em] text-[var(--text-muted)]">
+                <p className="nav-text text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                   {item.label[language]}
                 </p>
-                <p className="mt-1.5 text-xs leading-5 text-[var(--text-primary)]">
+                <p className="story-subcopy mt-1.5 text-xs leading-5">
                   {item.description[language]}
                 </p>
               </Link>

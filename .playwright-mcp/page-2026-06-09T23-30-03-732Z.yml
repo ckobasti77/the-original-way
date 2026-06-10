@@ -1,0 +1,96 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - link "The Original Way" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img "The Original Way" [ref=e8]
+        - navigation "Glavna navigacija" [ref=e9]:
+          - link "Pocetna" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Ko smo mi?" [ref=e11] [cursor=pointer]:
+            - /url: /o-nama
+          - generic [ref=e12]:
+            - link "Kolekcije" [ref=e13] [cursor=pointer]:
+              - /url: /kolekcije
+              - generic [ref=e14]: Kolekcije
+              - img [ref=e15]
+            - generic:
+              - generic:
+                - generic:
+                  - link "Otvori Alpska kapsula kolekciju":
+                    - /url: /kolekcije/alpska-kapsula
+                    - paragraph: Alpska kapsula
+                    - paragraph: Strukturni slojevi krojeni za otpornost i cistu estetiku na visinama.
+                  - link "Otvori Sunset resort kolekciju":
+                    - /url: /kolekcije/sunset-resort
+                    - paragraph: Sunset resort
+                    - paragraph: Tecni krojevi i prozracni materijali stvoreni za prelazne trenutke i topla podneblja.
+                  - link "Otvori After dark kolekciju":
+                    - /url: /kolekcije/after-dark
+                    - paragraph: After dark
+                    - paragraph: Minimalisticka vecernja uniforma koja spaja priguseni sjaj i arhitektonski kroj.
+      - generic [ref=e17]:
+        - navigation "Glavna navigacija" [ref=e18]:
+          - generic [ref=e19]:
+            - link "Muskarci" [ref=e20] [cursor=pointer]:
+              - /url: /kolekcije/muskarci
+              - generic [ref=e21]: Muskarci
+              - img [ref=e22]
+            - generic:
+              - generic:
+                - generic:
+                  - link "Otvori musku Alpsku kapsulu":
+                    - /url: /kolekcije/muskarci/alpska-kapsula
+                    - paragraph: Alpska kapsula
+                    - paragraph: Strukturni muski slojevi za visinu, otpornost i hladne dane.
+                  - link "Otvori muski Sunset resort":
+                    - /url: /kolekcije/muskarci/sunset-resort
+                    - paragraph: Sunset resort
+                    - paragraph: Muski tecni krojevi i prozracni lan za tople destinacije.
+                  - link "Otvori muski After dark":
+                    - /url: /kolekcije/muskarci/after-dark
+                    - paragraph: After dark
+                    - paragraph: Muska vecernja uniforma sa prigusenim sjajem i ostrim krojem.
+          - generic [ref=e24]:
+            - link "Zene" [ref=e25] [cursor=pointer]:
+              - /url: /kolekcije/zene
+              - generic [ref=e26]: Zene
+              - img [ref=e27]
+            - generic:
+              - generic:
+                - generic:
+                  - link "Otvori zensku Alpsku kapsulu":
+                    - /url: /kolekcije/zene/alpska-kapsula
+                    - paragraph: Alpska kapsula
+                    - paragraph: Zenski strukturni kaputi i pletiva za visoku zastitu i ciste linije.
+                  - link "Otvori zenski Sunset resort":
+                    - /url: /kolekcije/zene/sunset-resort
+                    - paragraph: Sunset resort
+                    - paragraph: Zenske svilene i lanene siluete za prelazne i tople dane.
+                  - link "Otvori zenski After dark":
+                    - /url: /kolekcije/zene/after-dark
+                    - paragraph: After dark
+                    - paragraph: Zenska minimalisticka vecernja odela i haljine sa tihim sjajem.
+          - link "Kontakt" [ref=e29] [cursor=pointer]:
+            - /url: /atelje/kontakt
+        - generic [ref=e30]:
+          - group "Jezik" [ref=e31]:
+            - button "Prebaci na srpski jezik" [pressed] [ref=e32] [cursor=pointer]: SR
+            - generic [ref=e33]: /
+            - button "Prebaci na engleski jezik" [ref=e34] [cursor=pointer]: EN
+          - button "Prebaci na tamnu temu" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+    - generic [ref=e40]:
+      - img [ref=e42]
+      - generic [ref=e46]:
+        - generic [ref=e49]:
+          - paragraph [ref=e50]: The Original Way
+          - paragraph [ref=e53]: Estetika se definiše.
+        - generic [ref=e54]:
+          - button "Sledeći korak" [disabled]:
+            - img
+          - button "Kraj priče" [disabled]:
+            - img
+  - button "Open Next.js Dev Tools" [ref=e60] [cursor=pointer]:
+    - img [ref=e61]

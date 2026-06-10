@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { bodyFont, displayFont } from "@/app/fonts";
+import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { SettingsProvider } from "@/components/settings-provider";
 
 import "./globals.css";
@@ -23,8 +24,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${bodyFont.variable} ${displayFont.variable} antialiased`}
     >
-      <body className="min-h-screen">
-        <SettingsProvider>{children}</SettingsProvider>
+      <body className="min-h-screen" suppressHydrationWarning>
+        <SettingsProvider>
+          <ConvexClientProvider>{children}</ConvexClientProvider>
+        </SettingsProvider>
       </body>
     </html>
   );

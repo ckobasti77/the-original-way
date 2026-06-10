@@ -9,14 +9,15 @@ export type ActionLink = {
 };
 
 export type Chapter = {
-  body: LocalizedText;
   ctaPrimary: ActionLink;
   ctaSecondary: ActionLink;
   eyebrow: LocalizedText;
   frame: number;
   id: string;
-  note: LocalizedText;
-  title: LocalizedText;
+  leftSubtitle?: LocalizedText;
+  leftTitle: LocalizedText;
+  rightSubtitle?: LocalizedText;
+  rightTitle: LocalizedText;
 };
 
 export type NavItem = {
@@ -241,17 +242,21 @@ export const CHAPTERS: Chapter[] = [
       sr: "POGLAVLJE 01 / AUTENTIČNOST",
       en: "CHAPTER 01 / AUTHENTICITY",
     },
-    note: {
-      sr: "Čisto poreklo",
-      en: "Pure origin",
+    leftTitle: {
+      sr: "Tvoj stil.",
+      en: "Your style.",
     },
-    title: {
-      sr: "Zaboravite preprodavce. Dobrodošli u izvor.",
-      en: "Forget the resellers. Welcome to the source.",
+    leftSubtitle: {
+      sr: "Bez kopije. Bez buke.",
+      en: "No copies. No noise.",
     },
-    body: {
-      sr: "Svaki komad u našoj selekciji dolazi direktno iz ateljea kreatora. Bez posrednika, bez sumnje, bez kompromisa. Samo čista originalnost namenjena onima koji znaju razliku.",
-      en: "Every piece in our selection comes directly from the creators' ateliers. No middlemen, no doubt, no compromises. Just pure originality meant for those who know the difference.",
+    rightTitle: {
+      sr: "Tvoj put.",
+      en: "Your path.",
+    },
+    rightSubtitle: {
+      sr: "Direktno do originala.",
+      en: "Straight to the original.",
     },
     ctaPrimary: {
       href: "/kolekcije/alpska-kapsula",
@@ -265,14 +270,14 @@ export const CHAPTERS: Chapter[] = [
       },
     },
     ctaSecondary: {
-      href: "/atelje/saveti",
+      href: "/o-nama",
       label: {
-        sr: "Stilske beleske",
-        en: "Styling notes",
+        sr: "Naš pristup",
+        en: "Our approach",
       },
       ariaLabel: {
-        sr: "Otvori stilske beleske za alpsku kolekciju",
-        en: "Open styling notes for the alpine collection",
+        sr: "Saznaj više o našem pristupu",
+        en: "Learn more about our approach",
       },
     },
   },
@@ -283,38 +288,42 @@ export const CHAPTERS: Chapter[] = [
       sr: "POGLAVLJE 02 / STANDARD",
       en: "CHAPTER 02 / THE STANDARD",
     },
-    note: {
-      sr: "Bez hajpa. Samo vrednost.",
-      en: "Beyond hype. Just value.",
+    leftTitle: {
+      sr: "Budi originalan.",
+      en: "Be original.",
     },
-    title: {
-      sr: "Tamo gde prestaje preprodaja, počinje stil.",
-      en: "Where reselling ends, style begins.",
+    leftSubtitle: {
+      sr: "Bez hajpa, bez viška.",
+      en: "No hype, no excess.",
     },
-    body: {
-      sr: "Dok drugi trguju trendovima po naduvanim cenama, mi donosimo trajne originale u njihovom najčistijem obliku. Arhivski komadi sa sopstvenom istorijom, verifikovani u korenima.",
-      en: "While others trade trends at inflated prices, we deliver lasting originals in their purest form. Archival pieces with their own history, verified at the roots.",
+    rightTitle: {
+      sr: "Nosi svoj standard.",
+      en: "Wear your standard.",
+    },
+    rightSubtitle: {
+      sr: "Čista selekcija. Jasan stav.",
+      en: "Pure selection. Clear stance.",
     },
     ctaPrimary: {
       href: "/kolekcije/sunset-resort",
       label: {
-        sr: "Istrazi resort",
+        sr: "Istraži resort",
         en: "Explore resort",
       },
       ariaLabel: {
-        sr: "Istrazi Sunset resort kolekciju",
+        sr: "Istraži Sunset resort kolekciju",
         en: "Explore the Sunset resort collection",
       },
     },
     ctaSecondary: {
-      href: "/uvodnici/linija-svetla",
+      href: "/kolekcije",
       label: {
-        sr: "Linija svetla",
-        en: "Line of light",
+        sr: "Pogledaj sve",
+        en: "View all",
       },
       ariaLabel: {
-        sr: "Otvori uvodnik Linija svetla",
-        en: "Open the Line of light editorial",
+        sr: "Pogledaj sve kolekcije",
+        en: "View all collections",
       },
     },
   },
@@ -325,17 +334,21 @@ export const CHAPTERS: Chapter[] = [
       sr: "POGLAVLJE 03 / FILOZOFIJA",
       en: "CHAPTER 03 / THE PHILOSOPHY",
     },
-    note: {
-      sr: "Trajni utisak",
-      en: "Lasting impression",
+    leftTitle: {
+      sr: "Ostavi trag.",
+      en: "Leave a mark.",
     },
-    title: {
-      sr: "Originalni put je jedini put.",
-      en: "The original way is the only way.",
+    leftSubtitle: {
+      sr: "Tih, ali jasan.",
+      en: "Quiet, but unmistakable.",
     },
-    body: {
-      sr: "Luksuz nije u ceni preprodaje, već u istini dizajna. Otkrijte autentične siluete stvorene da traju i nose karakter koji se ne može kopirati.",
-      en: "Luxury is not in the resale price, but in the truth of design. Discover authentic silhouettes created to last, bearing a character that cannot be replicated.",
+    rightTitle: {
+      sr: "Original traje.",
+      en: "Original lasts.",
+    },
+    rightSubtitle: {
+      sr: "Stvoren da ostane.",
+      en: "Made to remain.",
     },
     ctaPrimary: {
       href: "/kolekcije/after-dark",
@@ -349,14 +362,14 @@ export const CHAPTERS: Chapter[] = [
       },
     },
     ctaSecondary: {
-      href: "/uvodnici/nocni-kadar",
+      href: "/atelje/kontakt",
       label: {
-        sr: "Nocni kadar",
-        en: "Night frame",
+        sr: "Zakaži kontakt",
+        en: "Book contact",
       },
       ariaLabel: {
-        sr: "Otvori uvodnik Nocni kadar",
-        en: "Open the Night frame editorial",
+        sr: "Otvori kontakt stranicu",
+        en: "Open the contact page",
       },
     },
   },
@@ -374,7 +387,7 @@ export const UI_COPY = {
     menu: "Meni",
     mobileNavigation: "Mobilna navigacija",
     openMenu: "Otvori meni",
-    storyHint: "Skroluj, prevuci ili koristi strelice za sledece poglavlje.",
+    storyHint: "Skroluj, prevuci ili koristi strelice za sledeće poglavlje.",
     storyNavigation: "Navigacija kroz poglavlja",
     switchToDark: "Prebaci na tamnu temu",
     switchToEnglish: "Prebaci na engleski jezik",
