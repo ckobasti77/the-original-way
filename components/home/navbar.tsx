@@ -183,7 +183,7 @@ export function Navbar() {
           : "duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-0 opacity-100"
       }`}
     >
-      <div className="pointer-events-auto relative h-20 w-full">
+      <div className="pointer-events-auto relative h-20 w-full px-4 md:px-8">
         {/* Layered glass background with a bottom fade-out */}
         <div 
           aria-hidden="true"
@@ -196,7 +196,7 @@ export function Navbar() {
             WebkitMaskImage: `${NAVBAR_CENTER_MASK}, ${NAVBAR_BOTTOM_MASK}`,
           }}
         />
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-8">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between">
           {/* Left Side: Logo and first 3 Navlinks */}
           <div className="flex items-center gap-8 lg:gap-12">
             <Link

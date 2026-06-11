@@ -174,7 +174,7 @@ export function AnimatedText({
       {/* LEFT PANEL */}
       <div
         ref={leftPanelRef}
-        className="story-float absolute left-0 top-[14vh] max-w-[min(88vw,29rem)] sm:max-w-[30rem]"
+        className="story-float absolute left-0 top-[9vh] lg:top-[14vh] max-w-[min(88vw,29rem)] sm:max-w-[30rem]"
         style={{ perspective: 1000, opacity: 0 }}
       >
         <LiquidGlassCard
@@ -218,7 +218,7 @@ export function AnimatedText({
       {/* RIGHT PANEL */}
       <div
         ref={rightPanelRef}
-        className="story-float absolute bottom-[15vh] right-0 max-w-[min(88vw,27rem)] sm:max-w-[28rem]"
+        className="story-float absolute bottom-[10vh] lg:bottom-[15vh] right-0 max-w-[min(88vw,27rem)] sm:max-w-[28rem]"
         style={{ perspective: 1000, opacity: 0 }}
       >
         <LiquidGlassCard

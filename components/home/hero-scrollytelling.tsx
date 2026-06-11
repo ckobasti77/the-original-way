@@ -830,7 +830,7 @@ export function HeroScrollytelling() {
                 {/* Desktop Layout (>= 1024px) - Original layout restored */}
                 <div className="hidden lg:grid grid-cols-2 gap-x-12 gap-y-12 w-full flex-1 min-h-0 items-stretch py-6">
                   {/* Left Column: Title top, Sneaker Model + CTA bottom */}
-                  <div className="flex flex-col justify-between items-start h-full">
+                  <div className="flex flex-col justify-between items-start h-full md:pl-[35px]">
                     {/* Top-Left: Title */}
                     <div className="story-copy-panel relative max-w-[24rem] w-fit">
                       <p className="story-eyebrow reveal-up text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-[var(--text-secondary)]">
@@ -894,7 +894,7 @@ export function HeroScrollytelling() {
                   </div>
 
                   {/* Right Column: Tech Fleece Model top + CTA, Short Title bottom */}
-                  <div className="flex flex-col justify-between items-end h-full text-right">
+                  <div className="flex flex-col justify-between items-end h-full text-right md:pr-[35px]">
                     {/* Top-Right: Tech Fleece Model + CTA */}
                     <div className="flex flex-col items-center w-full md:-translate-y-8 md:translate-x-[170px]">
                       {/* <ModelViewer
@@ -963,7 +963,7 @@ export function HeroScrollytelling() {
                 </div>
 
                 {/* Mobile/Tablet Layout (< 1024px) - Centered Liquid Glass Cards */}
-                <div className="grid lg:hidden grid-cols-1 gap-y-8 w-full flex-1 min-h-0 items-stretch py-2">
+                <div className="grid lg:hidden grid-cols-1 gap-y-16 w-full flex-1 min-h-0 items-stretch py-2">
                   {/* Left Card Column */}
                   <div className="flex flex-col justify-center items-start h-full w-full">
                     <LiquidGlassCard active={stopIndex === 0 && !isTransitioning} className="w-full max-w-[280px] sm:max-w-[320px] flex flex-col justify-center items-center h-fit p-4 sm:p-6">
