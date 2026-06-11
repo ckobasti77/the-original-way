@@ -270,7 +270,7 @@ function EvidenceConvex() {
         description="Kontrolna tabla je sada evidencija: sve porudzbine sa sajta i rucno unete porudzbine, sa manuelnom promenom statusa."
       />
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         <Metric label="Prodajna vrednost" value={formatCurrency(stats.totalSale)} />
         <Metric label="Nabavna vrednost" value={formatCurrency(stats.totalCost)} />
         <Metric label="Novo" value={`${stats.newOrders} porudzbine`} />
@@ -403,7 +403,7 @@ function EvidenceConvex() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
                   <FieldLabel label="Velicina">
                     <select
                       value={itemForm.size}
@@ -437,20 +437,22 @@ function EvidenceConvex() {
                       inputMode="numeric"
                     />
                   </FieldLabel>
-                  <FieldLabel label="Rucna prodajna cena">
-                    <input
-                      value={itemForm.salePriceOverride}
-                      onChange={(event) =>
-                        setItemForm((current) => ({
-                          ...current,
-                          salePriceOverride: event.target.value,
-                        }))
-                      }
-                      className={fieldClass}
-                      inputMode="decimal"
-                      placeholder="opciono"
-                    />
-                  </FieldLabel>
+                  <div className="col-span-2 sm:col-span-1">
+                    <FieldLabel label="Rucna cena">
+                      <input
+                        value={itemForm.salePriceOverride}
+                        onChange={(event) =>
+                          setItemForm((current) => ({
+                            ...current,
+                            salePriceOverride: event.target.value,
+                          }))
+                        }
+                        className={fieldClass}
+                        inputMode="decimal"
+                        placeholder="opciono"
+                      />
+                    </FieldLabel>
+                  </div>
                 </div>
 
                 <button type="button" onClick={addDraftItem} className={secondaryButtonClass}>
@@ -520,93 +522,197 @@ function EvidenceConvex() {
           ) : null}
 
           {orders && orders.length > 0 ? (
-            <div className="max-w-full overflow-hidden rounded-lg border border-black/10 bg-white">
-              <div className="overflow-x-auto">
-                <table className="min-w-[1080px] w-full text-left text-sm">
-                  <thead className="bg-[#f4f5f1] text-xs uppercase tracking-[0.12em] text-black/50">
-                    <tr>
-                      <th className="px-4 py-3">Porudzbina</th>
-                      <th className="px-4 py-3">Kupac</th>
-                      <th className="px-4 py-3">Adresa</th>
-                      <th className="px-4 py-3">Artikli</th>
-                      <th className="px-4 py-3">Nabavna</th>
-                      <th className="px-4 py-3">Prodajna</th>
-                      <th className="px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order) => (
-                      <tr key={order._id} className="border-t border-black/[0.08]">
-                        <td className="px-4 py-4">
-                          <p className="font-mono text-xs">{order.orderNumber}</p>
-                          <p className="text-xs text-black/50">
-                            {new Date(order.createdAt).toLocaleDateString("sr-RS")}
-                          </p>
-                        </td>
-                        <td className="px-4 py-4">
-                          <p className="font-semibold">
-                            {order.firstName} {order.lastName}
-                          </p>
-                          <p className="text-xs text-black/50">
-                            {order.email || "Nema email"}
-                          </p>
-                        </td>
-                        <td className="px-4 py-4">
-                          {order.city}, {order.street} {order.houseNumber}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="space-y-1">
-                            {order.items.map((item, index) => (
-                              <p key={`${item.productId}-${index}`}>
-                                {item.productName}, {item.size} x {item.quantity}
-                              </p>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 font-semibold">
-                          {formatCurrency(order.totalCost)}
-                        </td>
-                        <td className="px-4 py-4 font-semibold">
-                          {formatCurrency(order.totalSale)}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="grid gap-2">
-                            <span
-                              className={`inline-flex w-fit rounded-md border px-2 py-1 text-xs font-bold ${orderStatusClasses[order.status]}`}
-                            >
-                              {
-                                orderStatuses.find(
-                                  (status) => status.value === order.status,
-                                )?.label
-                              }
-                            </span>
-                            <select
-                              value={order.status}
-                              onChange={(event) =>
-                                void changeStatus(
-                                  order,
-                                  event.target.value as OrderStatus,
-                                )
-                              }
-                              className={fieldClass}
-                            >
-                              {orderStatuses.map((status) => (
-                                <option key={status.value} value={status.value}>
-                                  {status.label}
-                                </option>
-                              ))}
-                            </select>
-                            {order.trackingNumber ? (
-                              <p className="text-xs text-black/55">
-                                Broj: {order.trackingNumber}
-                              </p>
-                            ) : null}
-                          </div>
-                        </td>
+            <div className="space-y-4">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-hidden rounded-lg border border-black/10 bg-white">
+                <div className="overflow-x-auto">
+                  <table className="min-w-[1080px] w-full text-left text-sm">
+                    <thead className="bg-[#f4f5f1] text-xs uppercase tracking-[0.12em] text-black/50">
+                      <tr>
+                        <th className="px-4 py-3">Porudzbina</th>
+                        <th className="px-4 py-3">Kupac</th>
+                        <th className="px-4 py-3">Adresa</th>
+                        <th className="px-4 py-3">Artikli</th>
+                        <th className="px-4 py-3">Nabavna</th>
+                        <th className="px-4 py-3">Prodajna</th>
+                        <th className="px-4 py-3">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {orders.map((order) => (
+                        <tr key={order._id} className="border-t border-black/[0.08]">
+                          <td className="px-4 py-4">
+                            <p className="font-mono text-xs">{order.orderNumber}</p>
+                            <p className="text-xs text-black/50">
+                              {new Date(order.createdAt).toLocaleDateString("sr-RS")}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="font-semibold">
+                              {order.firstName} {order.lastName}
+                            </p>
+                            <p className="text-xs text-black/50">
+                              {order.email || "Nema email"}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4">
+                            {order.city}, {order.street} {order.houseNumber}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="space-y-1">
+                              {order.items.map((item, index) => (
+                                <p key={`${item.productId}-${index}`}>
+                                  {item.productName}, {item.size} x {item.quantity}
+                                </p>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 font-semibold">
+                            {formatCurrency(order.totalCost)}
+                          </td>
+                          <td className="px-4 py-4 font-semibold">
+                            {formatCurrency(order.totalSale)}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="grid gap-2">
+                              <span
+                                className={`inline-flex w-fit rounded-md border px-2 py-1 text-xs font-bold ${orderStatusClasses[order.status]}`}
+                              >
+                                {
+                                  orderStatuses.find(
+                                    (status) => status.value === order.status,
+                                  )?.label
+                                }
+                              </span>
+                              <select
+                                value={order.status}
+                                onChange={(event) =>
+                                  void changeStatus(
+                                    order,
+                                    event.target.value as OrderStatus,
+                                  )
+                                }
+                                className={fieldClass}
+                              >
+                                {orderStatuses.map((status) => (
+                                  <option key={status.value} value={status.value}>
+                                    {status.label}
+                                  </option>
+                                ))}
+                              </select>
+                              {order.trackingNumber ? (
+                                <p className="text-xs text-black/55">
+                                  Broj: {order.trackingNumber}
+                                </p>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile Cards List View */}
+              <div className="grid gap-4 md:hidden">
+                {orders.map((order) => (
+                  <div
+                    key={order._id}
+                    className="rounded-lg border border-black/10 bg-white p-4 shadow-xs flex flex-col gap-3"
+                  >
+                    {/* Card Header */}
+                    <div className="flex items-center justify-between border-b border-black/[0.06] pb-2">
+                      <span className="font-mono text-sm font-bold text-[#276c56]">
+                        #{order.orderNumber}
+                      </span>
+                      <span className="text-xs text-black/50">
+                        {new Date(order.createdAt).toLocaleDateString("sr-RS")}
+                      </span>
+                    </div>
+
+                    {/* Customer */}
+                    <div className="text-sm">
+                      <p className="font-bold text-[#141816]">
+                        {order.firstName} {order.lastName}
+                      </p>
+                      {order.email && (
+                        <p className="text-xs text-black/60 mt-0.5">
+                          {order.email}
+                        </p>
+                      )}
+                      <p className="text-xs text-black/70 mt-1">
+                        Grad: <span className="font-semibold">{order.city}</span>, {order.street} {order.houseNumber}
+                      </p>
+                    </div>
+
+                    {/* Ordered Items */}
+                    <div className="bg-[#f7f8f4] rounded-md p-3 text-xs space-y-1.5 border border-black/[0.04]">
+                      <p className="font-bold text-black/50 uppercase tracking-wider text-[9px]">Artikli</p>
+                      {order.items.map((item, index) => (
+                        <div key={`${item.productId}-${index}`} className="flex justify-between gap-2">
+                          <span className="font-medium text-[#141816]">{item.productName}</span>
+                          <span className="shrink-0 text-black/60 font-semibold">
+                            Vel: {item.size} × {item.quantity}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Financials */}
+                    <div className="grid grid-cols-2 gap-2 text-xs border-t border-b border-black/[0.06] py-2">
+                      <div>
+                        <p className="text-black/45 uppercase text-[9px] font-bold tracking-wider">Nabavna vrednost</p>
+                        <p className="font-bold mt-0.5">{formatCurrency(order.totalCost)}</p>
+                      </div>
+                      <div>
+                        <p className="text-black/45 uppercase text-[9px] font-bold tracking-wider">Prodajna vrednost</p>
+                        <p className="font-bold text-[#276c56] mt-0.5">{formatCurrency(order.totalSale)}</p>
+                      </div>
+                    </div>
+
+                    {/* Status & Change Action */}
+                    <div className="flex flex-col gap-2 mt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-black/50">Status:</span>
+                        <span
+                          className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-bold ${orderStatusClasses[order.status]}`}
+                        >
+                          {
+                            orderStatuses.find(
+                              (status) => status.value === order.status,
+                            )?.label
+                          }
+                        </span>
+                      </div>
+
+                      <div className="grid gap-1">
+                        <select
+                          value={order.status}
+                          onChange={(event) =>
+                            void changeStatus(
+                              order,
+                              event.target.value as OrderStatus,
+                            )
+                          }
+                          className={fieldClass}
+                        >
+                          {orderStatuses.map((status) => (
+                            <option key={status.value} value={status.value}>
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {order.trackingNumber ? (
+                        <p className="text-xs text-black/55 bg-[#eef0eb] px-2 py-1 rounded-md font-mono mt-1 text-center">
+                          Broj posiljke: {order.trackingNumber}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : null}

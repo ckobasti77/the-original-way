@@ -174,10 +174,14 @@ export function AnimatedText({
       {/* LEFT PANEL */}
       <div
         ref={leftPanelRef}
-        className="story-float absolute left-0 top-[14vh] max-w-[min(88vw,29rem)] sm:left-2 sm:max-w-[30rem] md:left-4"
-        style={{ perspective: 1000 }}
+        className="story-float absolute left-0 top-[14vh] max-w-[min(88vw,29rem)] sm:max-w-[30rem]"
+        style={{ perspective: 1000, opacity: 0 }}
       >
-        <LiquidGlassCard active={!isTransitioning} className="w-full h-fit px-6 py-5 md:px-10 md:py-8 text-left items-start">
+        <LiquidGlassCard
+          active={!isTransitioning}
+          darkenFactor={0.55}
+          className="w-full h-fit px-6 py-5 md:px-10 md:py-8 text-left items-start"
+        >
           <div className="max-w-[19rem] sm:max-w-[21rem]">
             <HeroAnimatedText
               text={chapter.leftTitle[language]}
@@ -214,10 +218,14 @@ export function AnimatedText({
       {/* RIGHT PANEL */}
       <div
         ref={rightPanelRef}
-        className="story-float absolute bottom-[15vh] right-0 max-w-[min(88vw,27rem)] sm:right-2 sm:max-w-[28rem] md:right-4"
-        style={{ perspective: 1000 }}
+        className="story-float absolute bottom-[15vh] right-0 max-w-[min(88vw,27rem)] sm:max-w-[28rem]"
+        style={{ perspective: 1000, opacity: 0 }}
       >
-        <LiquidGlassCard active={!isTransitioning} className="w-full h-fit px-6 py-5 md:px-10 md:py-8 text-right items-end">
+        <LiquidGlassCard
+          active={!isTransitioning}
+          darkenFactor={0.55}
+          className="w-full h-fit px-6 py-5 md:px-10 md:py-8 text-right items-end"
+        >
           <div className="ml-auto max-w-[17rem] sm:max-w-[19rem] w-full text-right flex justify-end">
             <HeroAnimatedText
               text={chapter.rightTitle[language]}

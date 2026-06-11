@@ -65,40 +65,19 @@ function LanguageToggle() {
   const { language, setLanguage } = useSettings();
   const copy = UI_COPY[language];
 
+  const handleToggle = () => {
+    setLanguage(language === "sr" ? "en" : "sr");
+  };
+
   return (
-    <div
-      className="nav-text mr-2 inline-flex items-center gap-1.5 text-[0.7rem] font-sans font-semibold tracking-[0.18em] text-[var(--text-secondary)]"
-      aria-label={copy.language}
-      role="group"
+    <button
+      type="button"
+      onClick={handleToggle}
+      aria-label={language === "sr" ? copy.switchToEnglish : copy.switchToSerbian}
+      className="nav-text mr-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-[0.7rem] font-sans font-semibold tracking-[0.15em] text-[var(--text-secondary)] transition hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] cursor-pointer select-none"
     >
-      <button
-        type="button"
-        onClick={() => setLanguage("sr")}
-        aria-pressed={language === "sr"}
-        aria-label={copy.switchToSerbian}
-        className={`px-1 py-1 transition hover:text-[var(--text-primary)] ${
-          language === "sr"
-            ? "font-semibold text-[var(--text-primary)]"
-            : "opacity-45"
-        }`}
-      >
-        SR
-      </button>
-      <span className="opacity-30 select-none">/</span>
-      <button
-        type="button"
-        onClick={() => setLanguage("en")}
-        aria-pressed={language === "en"}
-        aria-label={copy.switchToEnglish}
-        className={`px-1 py-1 transition hover:text-[var(--text-primary)] ${
-          language === "en"
-            ? "font-semibold text-[var(--text-primary)]"
-            : "opacity-45"
-        }`}
-      >
-        EN
-      </button>
-    </div>
+      {language === "sr" ? "SR" : "EN"}
+    </button>
   );
 }
 
@@ -217,7 +196,7 @@ export function Navbar() {
             WebkitMaskImage: `${NAVBAR_CENTER_MASK}, ${NAVBAR_BOTTOM_MASK}`,
           }}
         />
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 lg:px-12">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-8">
           {/* Left Side: Logo and first 3 Navlinks */}
           <div className="flex items-center gap-8 lg:gap-12">
             <Link
@@ -288,9 +267,15 @@ export function Navbar() {
               )}
             </nav>
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2.5">
               <LanguageToggle />
               <ThemeToggle />
+              <Link
+                href="/admin"
+                className="hidden sm:inline-flex nav-text min-h-[2.2rem] items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] px-4 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] transition hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] hover:text-[var(--text-primary)] active:scale-95 cursor-pointer"
+              >
+                Admin
+              </Link>
               <button
                 ref={burgerButtonRef}
                 type="button"
@@ -473,12 +458,19 @@ export function Navbar() {
         </div>
 
         {/* Drawer Footer */}
-        <div className="border-t border-[var(--border-soft)] px-6 py-6 bg-[rgba(var(--shadow-rgb),0.02)]">
-          <div className="flex items-center justify-between mb-4">
+        <div className="border-t border-[var(--border-soft)] px-6 py-6 bg-[rgba(var(--shadow-rgb),0.02)] flex flex-col gap-4">
+          <Link
+            href="/admin"
+            onClick={closeDrawer}
+            className="w-full flex min-h-[2.6rem] items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] text-[0.78rem] font-bold uppercase tracking-[0.2em] text-[#276c56] hover:bg-[var(--surface-strong)] hover:border-[#276c56]/50 active:scale-95 transition-all text-center"
+          >
+            Admin Panel
+          </Link>
+          <div className="flex items-center justify-between">
             <LanguageToggle />
             <ThemeToggle />
           </div>
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--text-muted)] text-center mt-2">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--text-muted)] text-center mt-1">
             © 2026 {BRAND_NAME} • EST.
           </p>
         </div>

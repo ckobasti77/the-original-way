@@ -21,6 +21,7 @@ const FRAGMENT_SHADER_SOURCE = `
   uniform sampler2D iChannel0; // background frame player canvas texture
   uniform vec4 uCardRect; // x: left, y: top, z: width, w: height (screen pixels)
   uniform vec2 uViewport; // width, height of screen viewport
+  uniform float uDarkenFactor;
 
   void main() {
     vec2 fragCoord = gl_FragCoord.xy;
@@ -78,7 +79,8 @@ const FRAGMENT_SHADER_SOURCE = `
     float rim = 1.0 - (rimX * rimY);
     
     // Combine blurred background with specular hotspot and rim lighting
-    vec4 lighting = clamp(blurredColor + vec4(specular * 0.8) + vec4(rim * 0.04), 0.0, 1.0);
+    vec3 darkenedColor = blurredColor.rgb * uDarkenFactor;
+    vec4 lighting = clamp(vec4(darkenedColor, blurredColor.a) + vec4(specular * 0.8) + vec4(rim * 0.04), 0.0, 1.0);
     
     gl_FragColor = lighting;
   }
@@ -88,12 +90,14 @@ type LiquidGlassCardProps = {
   children: React.ReactNode;
   className?: string;
   active?: boolean;
+  darkenFactor?: number;
 };
 
 export function LiquidGlassCard({
   children,
   className = "",
   active = true,
+  darkenFactor = 1.0,
 }: LiquidGlassCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -106,6 +110,11 @@ export function LiquidGlassCard({
   // Smooth tracking position
   const currentMouseXRef = useRef<number>(0);
   const currentMouseYRef = useRef<number>(0);
+
+  const darkenFactorRef = useRef(darkenFactor);
+  useEffect(() => {
+    darkenFactorRef.current = darkenFactor;
+  }, [darkenFactor]);
 
   // Cache refs to prevent redundant GPU texture uploads and eliminate flickering
   const lastUploadedFrameRef = useRef<string>("");
@@ -213,6 +222,7 @@ export function LiquidGlassCard({
       texture: gl.getUniformLocation(program, "iChannel0"),
       cardRect: gl.getUniformLocation(program, "uCardRect"),
       viewport: gl.getUniformLocation(program, "uViewport"),
+      darkenFactor: gl.getUniformLocation(program, "uDarkenFactor"),
     };
 
     // Setup background texture
@@ -323,6 +333,7 @@ export function LiquidGlassCard({
         // Uniform values
         gl.uniform3f(uniforms.resolution, width, height, 1.0);
         gl.uniform1f(uniforms.time, time);
+        gl.uniform1f(uniforms.darkenFactor, darkenFactorRef.current);
         gl.uniform4f(
           uniforms.mouse,
           currentMouseXRef.current,
@@ -447,6 +458,14 @@ export function LiquidGlassCard({
         className="absolute inset-0 -z-10 h-full w-full pointer-events-none rounded-[inherit]"
         style={{ mixBlendMode: "normal" }}
       />
+      {!hasWebGL && darkenFactor < 1.0 && (
+        <div 
+          className="absolute inset-0 -z-5 pointer-events-none rounded-[inherit]" 
+          style={{
+            backgroundColor: `rgba(0, 0, 0, ${1.0 - darkenFactor})`,
+          }}
+        />
+      )}
       <div 
         ref={innerRef}
         className="relative z-10 w-full h-full flex flex-col justify-center items-center"

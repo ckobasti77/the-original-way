@@ -265,11 +265,17 @@ function CollectionsConvex() {
                 {products?.map((product) => (
                   <label
                     key={product._id}
-                    className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-black/10 bg-white px-3 py-2 text-sm"
+                    className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-sm transition-all select-none active:scale-[0.99] ${
+                      form.productIds.includes(product._id)
+                        ? "border-[#276c56] bg-[#e7f4ee] text-[#1f5946] shadow-xs"
+                        : "border-black/10 bg-white text-black/70 hover:border-black/20"
+                    }`}
                   >
                     <span>
                       <span className="font-bold">{product.name}</span>
-                      <span className="ml-2 text-black/50">
+                      <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded ${
+                        form.productIds.includes(product._id) ? "bg-[#1f5946]/10 text-[#1f5946]" : "bg-black/5 text-black/50"
+                      }`}>
                         {product.type === "clothing" ? "Odeca" : "Obuca"}
                       </span>
                     </span>
@@ -277,7 +283,7 @@ function CollectionsConvex() {
                       type="checkbox"
                       checked={form.productIds.includes(product._id)}
                       onChange={() => toggleProduct(product._id)}
-                      className="h-4 w-4 accent-[#276c56]"
+                      className="h-4 w-4 accent-[#276c56] cursor-pointer"
                     />
                   </label>
                 ))}
@@ -297,7 +303,7 @@ function CollectionsConvex() {
           {collections?.length === 0 ? (
             <EmptyState text="Jos nema kolekcija u Convex bazi." />
           ) : null}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {collections?.map((collection) => {
               const linkedProducts =
                 products?.filter((product) =>

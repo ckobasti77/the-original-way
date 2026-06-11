@@ -16,6 +16,7 @@ import { HeroAnimatedText } from "./hero-animated-text";
 import { BRAND_NAME, CHAPTERS } from "./content";
 import { FramePlayer, type FramePlayerHandle } from "./frame-player";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { LiquidGlassCard } from "./liquid-glass-card";
 import { gsap } from "gsap";
 
@@ -36,7 +37,7 @@ const FRAME_SEGMENTS = [
 const STEP_TRIGGER_DELTA = 56;
 const TOUCH_TRIGGER_DELTA = 52;
 const INTRO_DURATION_MS = 2000;
-const STEP_TRANSITION_MS = 750;
+const STEP_TRANSITION_MS = 1000;
 const SCROLL_EPSILON = 2;
 const TITLE_BURST_DURATION = 1.8;
 const TITLE_CYCLE_DURATION = 7.2;
@@ -90,7 +91,13 @@ function useReducedMotionPreference() {
 }
 
 export function HeroScrollytelling() {
-  const { language, setTheme } = useSettings();
+  const { language, theme, setTheme } = useSettings();
+
+  const themeRef = useRef(theme);
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
   const introCopy = INTRO_COPY[language];
   const prefersReducedMotion = useReducedMotionPreference();
   const framePlayerRef = useRef<FramePlayerHandle | null>(null);
@@ -200,6 +207,21 @@ export function HeroScrollytelling() {
       lockInput(STEP_TRANSITION_MS + 300);
       isAnimatingRef.current = true;
       setIsTransitioning(true);
+
+      const themes = ["light", "dark", "light", "dark"] as const;
+      const targetTheme = themes[nextStopIndex] ?? "light";
+      if (themeRef.current !== targetTheme) {
+        setTheme(targetTheme);
+      }
+
+      const root = document.documentElement;
+      if (root.getAttribute("data-stop-index") !== String(nextStopIndex)) {
+        root.setAttribute("data-stop-index", String(nextStopIndex));
+      }
+      const chapterId = nextStopIndex === 0 ? "intro" : CHAPTERS[nextStopIndex - 1]?.id || "intro";
+      if (root.getAttribute("data-chapter") !== chapterId) {
+        root.setAttribute("data-chapter", chapterId);
+      }
 
       window.dispatchEvent(
         new CustomEvent("tow-transition-start", {
@@ -324,14 +346,23 @@ export function HeroScrollytelling() {
   }, [stopIndex]);
 
   useEffect(() => {
+    if (isAnimatingRef.current) {
+      return;
+    }
     const themes = ["light", "dark", "light", "dark"] as const;
     const targetTheme = themes[stopIndex] ?? "light";
-    setTheme(targetTheme);
+    if (themeRef.current !== targetTheme) {
+      setTheme(targetTheme);
+    }
 
     const root = document.documentElement;
-    root.setAttribute("data-stop-index", String(stopIndex));
+    if (root.getAttribute("data-stop-index") !== String(stopIndex)) {
+      root.setAttribute("data-stop-index", String(stopIndex));
+    }
     const chapterId = stopIndex === 0 ? "intro" : CHAPTERS[stopIndex - 1]?.id || "intro";
-    root.setAttribute("data-chapter", chapterId);
+    if (root.getAttribute("data-chapter") !== chapterId) {
+      root.setAttribute("data-chapter", chapterId);
+    }
   }, [stopIndex, setTheme]);
 
 
@@ -681,7 +712,7 @@ export function HeroScrollytelling() {
         );
 
         // Stagger inner canvas & CTA buttons
-        const innerInteractive = sectionElement.querySelectorAll(".lg\\:grid canvas, .lg\\:grid .cta-button");
+        const innerInteractive = sectionElement.querySelectorAll(".lg\\:grid img.hero-image, .lg\\:grid canvas, .lg\\:grid .cta-button");
         tl.fromTo(
           innerInteractive,
           { scale: 0.75, opacity: 0 },
@@ -807,7 +838,7 @@ export function HeroScrollytelling() {
                       </p>
                       <div className="reveal-up mt-4" style={{ animationDelay: "100ms" }}>
                         <HeroAnimatedText
-                          text={introComplete ? introCopy.ready : introCopy.forming}
+                          text={introCopy.ready}
                           fontSize="clamp(1.35rem, 3vw, 1.9rem)"
                           minWeight={360}
                           maxWeight={740}
@@ -823,12 +854,20 @@ export function HeroScrollytelling() {
 
                     {/* Bottom-Left: Sneaker Model + CTA */}
                     <div className="flex flex-col items-center w-full md:-translate-x-[185px]">
-                      <ModelViewer
+                      {/* <ModelViewer
                         url="/assets/3d-models/air-max-dn.glb"
                         scale={1.2}
                         className="w-full max-w-[340px] h-[260px]"
                         rotationSpeed={0.006}
                         cameraPosition={[0, 0, 2.3]}
+                      /> */}
+                      <Image
+                        src="/assets/images/air-max.avif"
+                        alt="Air Max"
+                        width={340}
+                        height={260}
+                        className="hero-image w-full max-w-[340px] h-[260px] object-contain transition-transform duration-500 hover:scale-105"
+                        priority
                       />
                       <div className="mt-3 flex justify-center w-full">
                         <a
@@ -858,12 +897,20 @@ export function HeroScrollytelling() {
                   <div className="flex flex-col justify-between items-end h-full text-right">
                     {/* Top-Right: Tech Fleece Model + CTA */}
                     <div className="flex flex-col items-center w-full md:-translate-y-8 md:translate-x-[170px]">
-                      <ModelViewer
+                      {/* <ModelViewer
                         url="/assets/3d-models/tech-fleece.glb"
                         scale={1.1}
                         className="w-full max-w-[340px] h-[260px]"
                         rotationSpeed={0.006}
                         cameraPosition={[0, -0.18, 2.3]}
+                      /> */}
+                      <Image
+                        src="/assets/images/lacoste.avif"
+                        alt="Lacoste Tech Fleece"
+                        width={340}
+                        height={260}
+                        className="hero-image w-full max-w-[340px] h-[260px] object-contain transition-transform duration-500 hover:scale-105"
+                        priority
                       />
                       <div className="mt-3 flex justify-center w-full">
                         <a
@@ -927,7 +974,7 @@ export function HeroScrollytelling() {
                         </p>
                         <div className="reveal-up mt-4" style={{ animationDelay: "100ms" }}>
                           <HeroAnimatedText
-                            text={introComplete ? introCopy.ready : introCopy.forming}
+                            text={introCopy.ready}
                             fontSize="clamp(1.2rem, 2.5vw, 1.9rem)"
                             minWeight={360}
                             maxWeight={740}
@@ -943,12 +990,20 @@ export function HeroScrollytelling() {
 
                       {/* Bottom-Left: Sneaker Model + CTA */}
                       <div className="flex flex-col items-center w-full mt-2">
-                        <ModelViewer
+                        {/* <ModelViewer
                           url="/assets/3d-models/air-max-dn.glb"
                           scale={1.2}
                           className="w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px]"
                           rotationSpeed={0.006}
                           cameraPosition={[0, 0, 2.3]}
+                        /> */}
+                        <Image
+                          src="/assets/images/air-max.avif"
+                          alt="Air Max"
+                          width={240}
+                          height={160}
+                          className="hero-image w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px] object-contain transition-transform duration-500 hover:scale-105"
+                          priority
                         />
                         <div className="mt-3 flex justify-center w-full">
                           <a
@@ -980,12 +1035,20 @@ export function HeroScrollytelling() {
                     <LiquidGlassCard active={stopIndex === 0 && !isTransitioning} className="w-full max-w-[280px] sm:max-w-[320px] flex flex-col justify-center items-center h-fit p-4 sm:p-6">
                       {/* Top-Right: Tech Fleece Model + CTA */}
                       <div className="flex flex-col items-center w-full mt-2 mb-4">
-                        <ModelViewer
+                        {/* <ModelViewer
                           url="/assets/3d-models/tech-fleece.glb"
                           scale={1.1}
                           className="w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px]"
                           rotationSpeed={0.006}
                           cameraPosition={[0, -0.18, 2.3]}
+                        /> */}
+                        <Image
+                          src="/assets/images/lacoste.avif"
+                          alt="Lacoste Tech Fleece"
+                          width={240}
+                          height={160}
+                          className="hero-image w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px] object-contain transition-transform duration-500 hover:scale-105"
+                          priority
                         />
                         <div className="mt-3 flex justify-center w-full">
                           <a

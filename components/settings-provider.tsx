@@ -2,9 +2,11 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useSyncExternalStore,
 } from "react";
 
@@ -135,41 +137,58 @@ export function SettingsProvider({
 
   useEffect(() => {
     const root = document.documentElement;
-
-    root.dataset.theme = theme;
-    root.lang = language === "sr" ? "sr-Latn-RS" : "en";
+    if (root.dataset.theme !== theme) {
+      root.dataset.theme = theme;
+    }
+    const targetLang = language === "sr" ? "sr-Latn-RS" : "en";
+    if (root.lang !== targetLang) {
+      root.lang = targetLang;
+    }
   }, [language, theme]);
+
+  const stateRef = useRef({ language, theme });
+  useEffect(() => {
+    stateRef.current = { language, theme };
+  }, [language, theme]);
+
+  const setLanguage = useCallback((nextLanguage: Language) => {
+    writeSnapshot({
+      language: nextLanguage,
+      theme: stateRef.current.theme,
+    });
+  }, []);
+
+  const setTheme = useCallback((nextTheme: Theme) => {
+    writeSnapshot({
+      language: stateRef.current.language,
+      theme: nextTheme,
+    });
+  }, []);
+
+  const toggleLanguage = useCallback(() => {
+    writeSnapshot({
+      language: stateRef.current.language === "sr" ? "en" : "sr",
+      theme: stateRef.current.theme,
+    });
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    writeSnapshot({
+      language: stateRef.current.language,
+      theme: stateRef.current.theme === "light" ? "dark" : "light",
+    });
+  }, []);
 
   const value = useMemo<SettingsContextValue>(
     () => ({
       language,
-      setLanguage: (nextLanguage) => {
-        writeSnapshot({
-          language: nextLanguage,
-          theme,
-        });
-      },
+      setLanguage,
       theme,
-      setTheme: (nextTheme) => {
-        writeSnapshot({
-          language,
-          theme: nextTheme,
-        });
-      },
-      toggleLanguage: () => {
-        writeSnapshot({
-          language: language === "sr" ? "en" : "sr",
-          theme,
-        });
-      },
-      toggleTheme: () => {
-        writeSnapshot({
-          language,
-          theme: theme === "light" ? "dark" : "light",
-        });
-      },
+      setTheme,
+      toggleLanguage,
+      toggleTheme,
     }),
-    [language, theme],
+    [language, theme, setLanguage, setTheme, toggleLanguage, toggleTheme],
   );
 
   return (
