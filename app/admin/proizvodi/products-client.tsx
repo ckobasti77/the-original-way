@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 
 import { api } from "@/convex/_generated/api";
@@ -8,6 +8,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 
 import {
   clothingSizes,
+  defaultProductCategories,
   nikeShoeSizesEu,
   productGenders,
   productTypes,
@@ -31,6 +32,7 @@ type ProductRecord = {
   description: string;
   type: ProductType;
   gender: ProductGender;
+  categorySlug?: string;
   costPrice: number;
   salePrice: number;
   sizes: string[];
@@ -39,6 +41,20 @@ type ProductRecord = {
   imageUrls: string[];
   brandId?: Id<"brands">;
   brand?: { _id: Id<"brands">; name: string } | null;
+  category?: {
+    _id: Id<"categories">;
+    name: string;
+    slug: string;
+    type: ProductType;
+  } | null;
+};
+
+type CategoryRecord = {
+  _id?: Id<"categories">;
+  name: string;
+  slug: string;
+  type: ProductType;
+  sortOrder?: number;
 };
 
 type ProductForm = {
@@ -47,6 +63,7 @@ type ProductForm = {
   description: string;
   type: ProductType;
   gender: ProductGender;
+  categorySlug: string;
   costPrice: string;
   salePrice: string;
   sizes: string[];
@@ -60,6 +77,7 @@ const emptyForm: ProductForm = {
   description: "",
   type: "clothing",
   gender: "men",
+  categorySlug: "",
   costPrice: "",
   salePrice: "",
   sizes: [],
@@ -88,8 +106,12 @@ export function ProductsClient({ convexEnabled }: { convexEnabled: boolean }) {
 function ProductsConvex() {
   const products = useQuery(api.products.list) as ProductRecord[] | undefined;
   const brands = useQuery(api.brands.list);
+  const categories = useQuery(api.categories.list, {}) as
+    | CategoryRecord[]
+    | undefined;
   const upsertProduct = useMutation(api.products.upsert);
   const removeProduct = useMutation(api.products.remove);
+  const ensureDefaultCategories = useMutation(api.categories.ensureDefaults);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
@@ -100,6 +122,20 @@ function ProductsConvex() {
     () => (form.type === "clothing" ? clothingSizes : nikeShoeSizesEu),
     [form.type],
   );
+
+  useEffect(() => {
+    if (categories && categories.length === 0) {
+      void ensureDefaultCategories({});
+    }
+  }, [categories, ensureDefaultCategories]);
+
+  const availableCategories = useMemo(() => {
+    const source =
+      categories && categories.length > 0 ? categories : defaultProductCategories;
+    return [...source]
+      .filter((category) => category.type === form.type)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [categories, form.type]);
 
   async function uploadFiles(files: FileList | File[]) {
     const imageFiles = Array.from(files).filter((file) =>
@@ -163,8 +199,13 @@ function ProductsConvex() {
     const costPrice = Number(form.costPrice);
     const salePrice = Number(form.salePrice);
 
-    if (!form.name.trim() || !Number.isFinite(costPrice) || !Number.isFinite(salePrice)) {
-      setMessage("Naziv, nabavna cena i prodajna cena su obavezni.");
+    if (
+      !form.name.trim() ||
+      !form.categorySlug ||
+      !Number.isFinite(costPrice) ||
+      !Number.isFinite(salePrice)
+    ) {
+      setMessage("Naziv, kategorija, nabavna cena i prodajna cena su obavezni.");
       return;
     }
 
@@ -174,6 +215,7 @@ function ProductsConvex() {
       description: form.description.trim(),
       type: form.type,
       gender: form.gender,
+      categorySlug: form.categorySlug,
       costPrice,
       salePrice,
       sizes: form.sizes,
@@ -196,6 +238,7 @@ function ProductsConvex() {
       description: product.description,
       type: product.type,
       gender: product.gender,
+      categorySlug: product.categorySlug ?? "",
       costPrice: String(product.costPrice),
       salePrice: String(product.salePrice),
       sizes: product.sizes,
@@ -268,6 +311,7 @@ function ProductsConvex() {
                     setForm((current) => ({
                       ...current,
                       type: event.target.value as ProductType,
+                      categorySlug: "",
                       sizes: [],
                     }))
                   }
@@ -300,6 +344,26 @@ function ProductsConvex() {
                 </select>
               </FieldLabel>
             </div>
+
+            <FieldLabel label="Kategorija">
+              <select
+                value={form.categorySlug}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    categorySlug: event.target.value,
+                  }))
+                }
+                className={fieldClass}
+              >
+                <option value="">Izaberi kategoriju...</option>
+                {availableCategories.map((category) => (
+                  <option key={category.slug} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </FieldLabel>
 
             <FieldLabel label="Brend (opciono)">
               <select
@@ -474,6 +538,11 @@ function ProductsConvex() {
                             <p className="mt-1 max-w-xs text-xs text-black/55">
                               {product.description}
                             </p>
+                            {product.category ? (
+                              <p className="mt-2 text-xs font-bold text-[#276c56]">
+                                {product.category.name}
+                              </p>
+                            ) : null}
                           </td>
                           <td className="px-4 py-4">
                             <p>{product.type === "clothing" ? "Odeca" : "Obuca"}</p>
@@ -563,6 +632,12 @@ function ProductsConvex() {
                           }
                         </span></span>
                       </div>
+
+                      {product.category ? (
+                        <p className="mt-2 rounded-md bg-[#edf2ed] px-2 py-1 text-xs font-bold text-[#276c56]">
+                          {product.category.name}
+                        </p>
+                      ) : null}
 
                       {/* Pricing */}
                       <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">

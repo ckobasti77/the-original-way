@@ -1,6 +1,8 @@
 "use client";
 
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
+
+import { useEmailPasswordAuth } from "@/lib/auth/use-email-password-auth";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
@@ -14,5 +16,9 @@ export function ConvexClientProvider({
     return children;
   }
 
-  return <ConvexProvider client={convex}>{children}</ConvexProvider>;
+  return (
+    <ConvexProviderWithAuth client={convex} useAuth={useEmailPasswordAuth}>
+      {children}
+    </ConvexProviderWithAuth>
+  );
 }

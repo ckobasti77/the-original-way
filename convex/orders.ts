@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { getUserByAuthSubject, syncShippingFromOrder } from "./auth";
+import { safeTrim } from "../lib/auth/crypto";
 
 const orderStatus = v.union(
   v.literal("new"),
@@ -13,6 +15,27 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("orders").order("desc").collect();
+  },
+});
+
+export const mine = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+
+    const user = await getUserByAuthSubject(ctx, identity.subject);
+    if (!user) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("orders")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .collect();
   },
 });
 
@@ -38,6 +61,8 @@ export const create = mutation({
     const now = Date.now();
     const orders = await ctx.db.query("orders").collect();
     const orderNumber = `TOW-${String(1040 + orders.length).padStart(4, "0")}`;
+    const identity = await ctx.auth.getUserIdentity();
+    const user = identity ? await getUserByAuthSubject(ctx, identity.subject) : null;
 
     const items = [];
     let totalCost = 0;
@@ -68,11 +93,26 @@ export const create = mutation({
       });
     }
 
+    const orderEmail = safeTrim(args.email) || user?.email;
+
+    if (user && args.city.trim() && args.street.trim() && args.houseNumber.trim()) {
+      await syncShippingFromOrder(
+        ctx,
+        user,
+        {
+          city: args.city.trim(),
+          street: args.street.trim(),
+          houseNumber: args.houseNumber.trim(),
+        },
+      );
+    }
+
     return await ctx.db.insert("orders", {
       orderNumber,
+      userId: user?._id,
       firstName: args.firstName,
       lastName: args.lastName,
-      email: args.email,
+      email: orderEmail,
       city: args.city,
       street: args.street,
       houseNumber: args.houseNumber,

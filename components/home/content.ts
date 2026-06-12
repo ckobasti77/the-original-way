@@ -65,10 +65,10 @@ export const NAV_LINKS: NavLinkItem[] = [
       sr: "Kolekcije",
       en: "Collections",
     },
-    href: "/kolekcije",
+    href: "/proizvodi",
     items: [
       {
-        href: "/kolekcije/alpska-kapsula",
+        href: "/proizvodi?collection=alpska-kapsula",
         label: {
           sr: "Zimska kolekcija",
           en: "Winter collection",
@@ -83,7 +83,7 @@ export const NAV_LINKS: NavLinkItem[] = [
         },
       },
       {
-        href: "/kolekcije/sunset-resort",
+        href: "/proizvodi?collection=sunset-resort",
         label: {
           sr: "Letnja kolekcija",
           en: "Summer collection",
@@ -98,7 +98,7 @@ export const NAV_LINKS: NavLinkItem[] = [
         },
       },
       {
-        href: "/kolekcije/after-dark",
+        href: "/proizvodi?collection=after-dark",
         label: {
           sr: "Casual kolekcija",
           en: "Casual collection",
@@ -120,10 +120,10 @@ export const NAV_LINKS: NavLinkItem[] = [
       sr: "Muškarci",
       en: "Men",
     },
-    href: "/kolekcije/muskarci",
+    href: "/proizvodi?gender=men",
     items: [
       {
-        href: "/kolekcije/muskarci/alpska-kapsula",
+        href: "/proizvodi?gender=men&collection=alpska-kapsula",
         label: {
           sr: "Zimska kolekcija",
           en: "Winter collection",
@@ -138,7 +138,7 @@ export const NAV_LINKS: NavLinkItem[] = [
         },
       },
       {
-        href: "/kolekcije/muskarci/sunset-resort",
+        href: "/proizvodi?gender=men&collection=sunset-resort",
         label: {
           sr: "Letnja kolekcija",
           en: "Summer collection",
@@ -153,7 +153,7 @@ export const NAV_LINKS: NavLinkItem[] = [
         },
       },
       {
-        href: "/kolekcije/muskarci/after-dark",
+        href: "/proizvodi?gender=men&collection=after-dark",
         label: {
           sr: "Casual kolekcija",
           en: "Casual collection",
@@ -175,10 +175,10 @@ export const NAV_LINKS: NavLinkItem[] = [
       sr: "Žene",
       en: "Women",
     },
-    href: "/kolekcije/zene",
+    href: "/proizvodi?gender=women",
     items: [
       {
-        href: "/kolekcije/zene/alpska-kapsula",
+        href: "/proizvodi?gender=women&collection=alpska-kapsula",
         label: {
           sr: "Zimska kolekcija",
           en: "Winter collection",
@@ -193,7 +193,7 @@ export const NAV_LINKS: NavLinkItem[] = [
         },
       },
       {
-        href: "/kolekcije/zene/sunset-resort",
+        href: "/proizvodi?gender=women&collection=sunset-resort",
         label: {
           sr: "Letnja kolekcija",
           en: "Summer collection",
@@ -208,7 +208,7 @@ export const NAV_LINKS: NavLinkItem[] = [
         },
       },
       {
-        href: "/kolekcije/zene/after-dark",
+        href: "/proizvodi?gender=women&collection=after-dark",
         label: {
           sr: "Casual kolekcija",
           en: "Casual collection",
@@ -230,7 +230,7 @@ export const NAV_LINKS: NavLinkItem[] = [
       sr: "Kontakt",
       en: "Contact",
     },
-    href: "/atelje/kontakt",
+    href: "/kontakt",
   },
 ];
 
@@ -259,7 +259,7 @@ export const CHAPTERS: Chapter[] = [
       en: "High-top sneakers and shoes for adventures.",
     },
     ctaPrimary: {
-      href: "/kolekcije/alpska-kapsula",
+      href: "/proizvodi?collection=alpska-kapsula",
       label: {
         sr: "Zimska kolekcija",
         en: "Winter collection",
@@ -270,7 +270,7 @@ export const CHAPTERS: Chapter[] = [
       },
     },
     ctaSecondary: {
-      href: "/atelje/kontakt",
+      href: "/kontakt",
       label: {
         sr: "Kontakt",
         en: "Contact",
@@ -305,7 +305,7 @@ export const CHAPTERS: Chapter[] = [
       en: "Ultra-lightweight sneakers you won't even feel.",
     },
     ctaPrimary: {
-      href: "/kolekcije/sunset-resort",
+      href: "/proizvodi?collection=sunset-resort",
       label: {
         sr: "Letnja kolekcija",
         en: "Summer collection",
@@ -316,7 +316,7 @@ export const CHAPTERS: Chapter[] = [
       },
     },
     ctaSecondary: {
-      href: "/atelje/kontakt",
+      href: "/kontakt",
       label: {
         sr: "Kontakt",
         en: "Contact",
@@ -351,7 +351,7 @@ export const CHAPTERS: Chapter[] = [
       en: "Modern footwear for free and dynamic movement.",
     },
     ctaPrimary: {
-      href: "/kolekcije/after-dark",
+      href: "/proizvodi?collection=after-dark",
       label: {
         sr: "Casual kolekcija",
         en: "Casual collection",
@@ -362,7 +362,7 @@ export const CHAPTERS: Chapter[] = [
       },
     },
     ctaSecondary: {
-      href: "/atelje/kontakt",
+      href: "/kontakt",
       label: {
         sr: "Kontakt",
         en: "Contact",
@@ -380,6 +380,7 @@ export const UI_COPY = {
     chapter: "Poglavlje",
     closeMenu: "Zatvori meni",
     desktopNavigation: "Glavna navigacija",
+    cart: "Korpa",
     jumpToChapter: "Idi na poglavlje",
     language: "Jezik",
     light: "Svetla",
@@ -387,6 +388,11 @@ export const UI_COPY = {
     menu: "Meni",
     mobileNavigation: "Mobilna navigacija",
     openMenu: "Otvori meni",
+    profile: "Profil",
+    profileCta: "Moj profil",
+    profileDescription: "Nalog, adrese i porudzbine.",
+    loginCta: "Prijava",
+    search: "Pretraga",
     storyHint: "Skroluj, prevuci ili koristi strelice za sledeće poglavlje.",
     storyNavigation: "Navigacija kroz poglavlja",
     switchToDark: "Prebaci na tamnu temu",
@@ -399,6 +405,7 @@ export const UI_COPY = {
     chapter: "Chapter",
     closeMenu: "Close menu",
     desktopNavigation: "Primary navigation",
+    cart: "Cart",
     jumpToChapter: "Jump to chapter",
     language: "Language",
     light: "Light",
@@ -406,6 +413,11 @@ export const UI_COPY = {
     menu: "Menu",
     mobileNavigation: "Mobile navigation",
     openMenu: "Open menu",
+    profile: "Profile",
+    profileCta: "My profile",
+    profileDescription: "Account, addresses, and orders.",
+    loginCta: "Login",
+    search: "Search",
     storyHint: "Scroll, swipe, or use arrow keys for the next chapter.",
     storyNavigation: "Chapter navigation",
     switchToDark: "Switch to dark theme",

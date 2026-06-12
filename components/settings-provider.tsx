@@ -7,7 +7,7 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useSyncExternalStore,
+  useState,
 } from "react";
 
 export type Theme = "light" | "dark";
@@ -34,15 +34,12 @@ const STORAGE_KEYS = {
   theme: "tow-theme",
 } as const;
 
-const SETTINGS_EVENT = "tow-settings-change";
 const DEFAULT_LANGUAGE: Language = "sr";
 const DEFAULT_THEME: Theme = "light";
 const DEFAULT_SNAPSHOT: SettingsSnapshot = {
   language: DEFAULT_LANGUAGE,
   theme: DEFAULT_THEME,
 };
-
-let cachedSnapshot: SettingsSnapshot = DEFAULT_SNAPSHOT;
 
 function isTheme(value: string | null): value is Theme {
   return value === "light" || value === "dark";
@@ -52,65 +49,17 @@ function isLanguage(value: string | null): value is Language {
   return value === "sr" || value === "en";
 }
 
-function getServerSnapshot(): SettingsSnapshot {
-  return DEFAULT_SNAPSHOT;
-}
-
-function getSnapshot(theme: Theme, language: Language) {
-  if (
-    cachedSnapshot.theme === theme &&
-    cachedSnapshot.language === language
-  ) {
-    return cachedSnapshot;
-  }
-
-  cachedSnapshot = {
-    language,
-    theme,
-  };
-
-  return cachedSnapshot;
-}
-
-function getClientSnapshot(): SettingsSnapshot {
+function readStoredSnapshot(): SettingsSnapshot {
   if (typeof window === "undefined") {
-    return getServerSnapshot();
+    return DEFAULT_SNAPSHOT;
   }
 
   const storedTheme = window.localStorage.getItem(STORAGE_KEYS.theme);
   const storedLanguage = window.localStorage.getItem(STORAGE_KEYS.language);
 
-  return getSnapshot(
-    isTheme(storedTheme) ? storedTheme : DEFAULT_THEME,
-    isLanguage(storedLanguage) ? storedLanguage : DEFAULT_LANGUAGE,
-  );
-}
-
-function subscribe(onStoreChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  const handleStorage = (event: StorageEvent) => {
-    if (
-      event.key === null ||
-      event.key === STORAGE_KEYS.theme ||
-      event.key === STORAGE_KEYS.language
-    ) {
-      onStoreChange();
-    }
-  };
-
-  const handleSettingsChange = () => {
-    onStoreChange();
-  };
-
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(SETTINGS_EVENT, handleSettingsChange);
-
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(SETTINGS_EVENT, handleSettingsChange);
+  return {
+    language: isLanguage(storedLanguage) ? storedLanguage : DEFAULT_LANGUAGE,
+    theme: isTheme(storedTheme) ? storedTheme : DEFAULT_THEME,
   };
 }
 
@@ -121,7 +70,6 @@ function writeSnapshot(nextSnapshot: SettingsSnapshot) {
 
   window.localStorage.setItem(STORAGE_KEYS.theme, nextSnapshot.theme);
   window.localStorage.setItem(STORAGE_KEYS.language, nextSnapshot.language);
-  window.dispatchEvent(new Event(SETTINGS_EVENT));
 }
 
 export function SettingsProvider({
@@ -129,66 +77,102 @@ export function SettingsProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { language, theme } = useSyncExternalStore(
-    subscribe,
-    getClientSnapshot,
-    getServerSnapshot,
-  );
+  const [snapshot, setSnapshot] = useState<SettingsSnapshot>(DEFAULT_SNAPSHOT);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setSnapshot(readStoredSnapshot());
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
-    if (root.dataset.theme !== theme) {
-      root.dataset.theme = theme;
+    if (root.dataset.theme !== snapshot.theme) {
+      root.dataset.theme = snapshot.theme;
     }
-    const targetLang = language === "sr" ? "sr-Latn-RS" : "en";
+    const targetLang = snapshot.language === "sr" ? "sr-Latn-RS" : "en";
     if (root.lang !== targetLang) {
       root.lang = targetLang;
     }
-  }, [language, theme]);
+  }, [snapshot.language, snapshot.theme]);
 
-  const stateRef = useRef({ language, theme });
+  const stateRef = useRef(snapshot);
   useEffect(() => {
-    stateRef.current = { language, theme };
-  }, [language, theme]);
+    stateRef.current = snapshot;
+  }, [snapshot]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return () => undefined;
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        event.key === null ||
+        event.key === STORAGE_KEYS.theme ||
+        event.key === STORAGE_KEYS.language
+      ) {
+        setSnapshot(readStoredSnapshot());
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
 
   const setLanguage = useCallback((nextLanguage: Language) => {
-    writeSnapshot({
+    const nextSnapshot: SettingsSnapshot = {
       language: nextLanguage,
       theme: stateRef.current.theme,
-    });
+    };
+    writeSnapshot(nextSnapshot);
+    setSnapshot(nextSnapshot);
   }, []);
 
   const setTheme = useCallback((nextTheme: Theme) => {
-    writeSnapshot({
+    const nextSnapshot: SettingsSnapshot = {
       language: stateRef.current.language,
       theme: nextTheme,
-    });
+    };
+    writeSnapshot(nextSnapshot);
+    setSnapshot(nextSnapshot);
   }, []);
 
   const toggleLanguage = useCallback(() => {
-    writeSnapshot({
+    const nextSnapshot: SettingsSnapshot = {
       language: stateRef.current.language === "sr" ? "en" : "sr",
       theme: stateRef.current.theme,
-    });
+    };
+    writeSnapshot(nextSnapshot);
+    setSnapshot(nextSnapshot);
   }, []);
 
   const toggleTheme = useCallback(() => {
-    writeSnapshot({
+    const nextSnapshot: SettingsSnapshot = {
       language: stateRef.current.language,
       theme: stateRef.current.theme === "light" ? "dark" : "light",
-    });
+    };
+    writeSnapshot(nextSnapshot);
+    setSnapshot(nextSnapshot);
   }, []);
 
   const value = useMemo<SettingsContextValue>(
     () => ({
-      language,
+      language: snapshot.language,
       setLanguage,
-      theme,
+      theme: snapshot.theme,
       setTheme,
       toggleLanguage,
       toggleTheme,
     }),
-    [language, theme, setLanguage, setTheme, toggleLanguage, toggleTheme],
+    [snapshot.language, snapshot.theme, setLanguage, setTheme, toggleLanguage, toggleTheme],
   );
 
   return (

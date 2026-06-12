@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { bodyFont, displayFont } from "@/app/fonts";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { SettingsProvider } from "@/components/settings-provider";
+import { FloatingActions } from "@/components/site/floating-actions";
+import { CartProvider } from "@/components/shop/cart-provider";
 
 import "./globals.css";
 
@@ -24,9 +26,31 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${bodyFont.variable} ${displayFont.variable} antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (window.location.pathname === '/') {
+                  window.localStorage.setItem('tow-theme', 'light');
+                  document.documentElement.dataset.theme = 'light';
+                } else {
+                  var theme = window.localStorage.getItem('tow-theme') || 'light';
+                  document.documentElement.dataset.theme = theme;
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-screen" suppressHydrationWarning>
         <SettingsProvider>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <CartProvider>
+            <ConvexClientProvider>
+              {children}
+              <FloatingActions />
+            </ConvexClientProvider>
+          </CartProvider>
         </SettingsProvider>
       </body>
     </html>

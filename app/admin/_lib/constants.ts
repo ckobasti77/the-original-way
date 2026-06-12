@@ -44,15 +44,40 @@ export const nikeShoeSizesEu = [
 export const adminNavItems = [
   { href: "/admin/evidencija", label: "Evidencija" },
   { href: "/admin/proizvodi", label: "Proizvodi" },
+  { href: "/admin/kategorije", label: "Kategorije" },
   { href: "/admin/kolekcije", label: "Kolekcije" },
   { href: "/admin/brendovi", label: "Brendovi" },
   { href: "/admin/velicine", label: "Velicine" },
   { href: "/admin/podesavanja", label: "Podesavanja" },
 ];
 
+export const adminCredentials = {
+  email: "theoriginalway@gmail.com",
+  password: "jasamsazvezdare",
+} as const;
+
 export const productTypes = [
   { value: "clothing", label: "Odeca" },
   { value: "footwear", label: "Obuca" },
+] as const;
+
+export const defaultProductCategories = [
+  { name: "Majice", slug: "majice", type: "clothing", sortOrder: 10 },
+  { name: "Prsluci", slug: "prsluci", type: "clothing", sortOrder: 20 },
+  { name: "Dzemperi", slug: "dzemperi", type: "clothing", sortOrder: 30 },
+  { name: "Jakne", slug: "jakne", type: "clothing", sortOrder: 40 },
+  { name: "Suskavci", slug: "suskavci", type: "clothing", sortOrder: 50 },
+  { name: "Polo majice", slug: "polo-majice", type: "clothing", sortOrder: 60 },
+  { name: "Skijaske jakne", slug: "skijaske-jakne", type: "clothing", sortOrder: 70 },
+  { name: "Trenerke", slug: "trenerke", type: "clothing", sortOrder: 80 },
+  { name: "Kompleti", slug: "kompleti", type: "clothing", sortOrder: 90 },
+  { name: "Full-zip duksevi", slug: "full-zip-duksevi", type: "clothing", sortOrder: 100 },
+  { name: "Half-zip duksevi", slug: "half-zip-duksevi", type: "clothing", sortOrder: 110 },
+  { name: "Bomber jakne", slug: "bomber-jakne", type: "clothing", sortOrder: 120 },
+  { name: "Patike", slug: "patike", type: "footwear", sortOrder: 210 },
+  { name: "Duboke patike", slug: "duboke-patike", type: "footwear", sortOrder: 220 },
+  { name: "Cipele", slug: "cipele", type: "footwear", sortOrder: 230 },
+  { name: "Papuce", slug: "papuce", type: "footwear", sortOrder: 240 },
 ] as const;
 
 export const productGenders = [

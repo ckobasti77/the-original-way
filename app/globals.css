@@ -261,6 +261,10 @@ button:focus-visible {
   font-family: "Cormorant Garamond", "Times New Roman", serif;
 }
 
+.tow-on-primary {
+  color: var(--page-bg);
+}
+
 .glass-shell,
 .glass-panel {
   border: 1px solid var(--border-soft);

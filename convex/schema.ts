@@ -16,11 +16,55 @@ const orderStatus = v.union(
 );
 
 export default defineSchema({
+  users: defineTable({
+    authSubject: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    email: v.string(),
+    emailNormalized: v.string(),
+    passwordHash: v.string(),
+    passwordSalt: v.string(),
+    city: v.optional(v.string()),
+    street: v.optional(v.string()),
+    houseNumber: v.optional(v.string()),
+    profileCompletedAt: v.optional(v.number()),
+    lastLoginAt: v.optional(v.number()),
+    lastOrderAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email_normalized", ["emailNormalized"])
+    .index("by_auth_subject", ["authSubject"]),
+
+  sessions: defineTable({
+    tokenHash: v.string(),
+    userId: v.id("users"),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    revokedAt: v.optional(v.number()),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_user_id", ["userId"])
+    .index("by_expires_at", ["expiresAt"]),
+
+  passwordResetTokens: defineTable({
+    tokenHash: v.string(),
+    userId: v.id("users"),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  })
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_user_id", ["userId"])
+    .index("by_expires_at", ["expiresAt"]),
+
   products: defineTable({
     name: v.string(),
     description: v.string(),
     type: productType,
     gender: productGender,
+    categorySlug: v.optional(v.string()),
     costPrice: v.number(),
     salePrice: v.number(),
     sizes: v.array(v.string()),
@@ -32,7 +76,20 @@ export default defineSchema({
   })
     .index("by_type", ["type"])
     .index("by_gender", ["gender"])
+    .index("by_category_slug", ["categorySlug"])
     .index("by_brand", ["brandId"]),
+
+  categories: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    type: productType,
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_type", ["type"])
+    .index("by_sort_order", ["sortOrder"]),
 
   brands: defineTable({
     name: v.string(),
@@ -53,6 +110,7 @@ export default defineSchema({
 
   orders: defineTable({
     orderNumber: v.string(),
+    userId: v.optional(v.id("users")),
     firstName: v.string(),
     lastName: v.string(),
     email: v.optional(v.string()),
@@ -79,6 +137,7 @@ export default defineSchema({
     updatedAt: v.number(),
     statusUpdatedAt: v.number(),
   })
+    .index("by_user_id", ["userId"])
     .index("by_status", ["status"])
     .index("by_created_at", ["createdAt"]),
 

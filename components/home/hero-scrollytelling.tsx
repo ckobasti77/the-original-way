@@ -15,15 +15,9 @@ import { AnimatedText } from "./animated-text";
 import { HeroAnimatedText } from "./hero-animated-text";
 import { BRAND_NAME, CHAPTERS } from "./content";
 import { FramePlayer, type FramePlayerHandle } from "./frame-player";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { LiquidGlassCard } from "./liquid-glass-card";
 import { gsap } from "gsap";
-
-const ModelViewer = dynamic(
-  () => import("./model-viewer").then((mod) => mod.ModelViewer),
-  { ssr: false }
-);
 
 const INTRO_START_FRAME = 1;
 const STOP_FRAMES = [61, 122, 183, 245] as const;
@@ -277,6 +271,7 @@ export function HeroScrollytelling() {
       lockInput,
       maxStopIndex,
       prefersReducedMotion,
+      setTheme,
       setStopInstantly,
     ],
   );
@@ -346,7 +341,7 @@ export function HeroScrollytelling() {
   }, [stopIndex]);
 
   useEffect(() => {
-    if (isAnimatingRef.current) {
+    if (isTransitioning) {
       return;
     }
     const themes = ["light", "dark", "light", "dark"] as const;
@@ -363,7 +358,7 @@ export function HeroScrollytelling() {
     if (root.getAttribute("data-chapter") !== chapterId) {
       root.setAttribute("data-chapter", chapterId);
     }
-  }, [stopIndex, setTheme]);
+  }, [stopIndex, setTheme, isTransitioning]);
 
 
 
@@ -793,6 +788,7 @@ export function HeroScrollytelling() {
   return (
     <section
       ref={sectionRef}
+      data-tow-scrollytelling="true"
       className={`relative ${stopIndex === maxStopIndex ? "" : "touch-none"}`}
       style={{ height: `calc(${STOP_FRAMES.length} * 100vh)` }}
     >
