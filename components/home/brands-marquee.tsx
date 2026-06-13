@@ -77,7 +77,7 @@ export function BrandsMarquee() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full overflow-hidden bg-transparent py-14 border-t border-black/5 dark:border-white/5 z-20"
+      className="relative z-20 w-full overflow-hidden border-t border-[var(--border-soft)] bg-transparent py-14"
     >
       <style>{`
         @keyframes marquee {
@@ -109,7 +109,7 @@ export function BrandsMarquee() {
                 <img
                   src={brand.logoUrl}
                   alt={brand.name}
-                  className="max-w-full max-h-full object-contain filter dark:invert"
+                  className="max-h-full max-w-full object-contain opacity-90"
                 />
               ) : (
                 <span className="text-sm font-bold tracking-wider text-[var(--text-muted)] uppercase">
