@@ -1,11 +1,13 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./lib/authorization";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("settings").collect();
+    await requireAdmin(ctx);
+    return await ctx.db.query("settings").take(100);
   },
 });
 
@@ -15,6 +17,7 @@ export const set = mutation({
     value: v.string(),
   },
   handler: async (ctx, { key, value }) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db
       .query("settings")
       .withIndex("by_key", (q) => q.eq("key", key))

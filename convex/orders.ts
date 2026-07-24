@@ -4,6 +4,7 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import { getUserByAuthSubject, syncShippingFromOrder } from "./auth";
 import { safeTrim } from "../lib/auth/crypto";
 import { normalizeCourierProfile } from "../lib/storefront-profile";
+import { requireAdmin } from "./lib/authorization";
 
 const orderStatus = v.union(
   v.literal("new"),
@@ -30,7 +31,8 @@ async function nextOrderNumber(ctx: MutationCtx) {
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("orders").order("desc").collect();
+    await requireAdmin(ctx);
+    return await ctx.db.query("orders").order("desc").take(500);
   },
 });
 
@@ -51,7 +53,7 @@ export const mine = query({
       .query("orders")
       .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .order("desc")
-      .collect();
+      .take(100);
   },
 });
 
@@ -74,6 +76,12 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    if (args.items.length === 0 || args.items.length > 50) {
+      throw new Error("Porudžbina mora imati između 1 i 50 stavki.");
+    }
+
     const now = Date.now();
     const orderNumber = await nextOrderNumber(ctx);
     const identity = await ctx.auth.getUserIdentity();
@@ -90,8 +98,14 @@ export const create = mutation({
         throw new Error("Product does not exist.");
       }
 
-      const quantity = Math.max(1, Math.round(item.quantity));
+      if (!Number.isFinite(item.quantity)) {
+        throw new Error("Količina nije ispravna.");
+      }
+      const quantity = Math.min(100, Math.max(1, Math.round(item.quantity)));
       const salePrice = item.salePriceOverride ?? product.salePrice;
+      if (!Number.isFinite(salePrice) || salePrice < 0) {
+        throw new Error("Prodajna cena nije ispravna.");
+      }
       const costLine = product.costPrice * quantity;
       const saleLine = salePrice * quantity;
 
@@ -178,6 +192,9 @@ export const createStorefront = mutation({
     for (const input of args.items) {
       const product = await ctx.db.get(input.productId);
       if (!product) throw new Error("Proizvod više nije dostupan.");
+      if (!Number.isFinite(input.quantity)) {
+        throw new Error("Količina nije ispravna.");
+      }
       const quantity = Math.min(20, Math.max(1, Math.round(input.quantity)));
       const size = safeTrim(input.size).replace(/\s+/g, " ");
       if (!size || size.length > 30) throw new Error("Veličina nije ispravna.");
@@ -240,6 +257,7 @@ export const updateStatus = mutation({
     trackingNumber: v.optional(v.string()),
   },
   handler: async (ctx, { id, status, trackingNumber }) => {
+    await requireAdmin(ctx);
     const order = await ctx.db.get(id);
 
     if (!order) {
@@ -266,6 +284,7 @@ export const remove = mutation({
     id: v.id("orders"),
   },
   handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(id);
   },
 });

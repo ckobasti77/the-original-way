@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { gsap } from "gsap";
 
 type HeroAnimatedTextProps = {
   text: string;
@@ -58,27 +57,6 @@ export function HeroAnimatedText({
       element.style.animationDelay = `${phaseOffset + mappedIndex * delayMultiplier}s`;
     });
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        innerSpans,
-        {
-          yPercent: 110,
-          rotate: 6,
-          opacity: 0,
-        },
-        {
-          yPercent: 0,
-          rotate: 0,
-          opacity: 1,
-          duration: 1.0,
-          stagger: 0.02,
-          ease: "power4.out",
-          overwrite: "auto",
-        }
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
   }, [text, delayMultiplier, phaseOffset]);
 
   return (
@@ -119,6 +97,7 @@ export function HeroAnimatedText({
                 animationFillMode: "both",
                 fontVariationSettings: `"wght" ${minWeight}`,
                 fontWeight: minWeight,
+                opacity: 1,
                 transformOrigin: "bottom left",
               }}
             >

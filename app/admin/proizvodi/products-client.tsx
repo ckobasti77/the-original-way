@@ -59,6 +59,11 @@ type CategoryRecord = {
   sortOrder?: number;
 };
 
+type BrandRecord = {
+  _id: Id<"brands">;
+  name: string;
+};
+
 type ProductForm = {
   id?: Id<"products">;
   name: string;
@@ -110,8 +115,8 @@ export function ProductsClient({ convexEnabled }: { convexEnabled: boolean }) {
 }
 
 function ProductsConvex() {
-  const products = useQuery(api.products.list) as ProductRecord[] | undefined;
-  const brands = useQuery(api.brands.list);
+  const products = useQuery(api.products.listAdmin) as ProductRecord[] | undefined;
+  const brands = useQuery(api.brands.list) as BrandRecord[] | undefined;
   const categories = useQuery(api.categories.list, {}) as
     | CategoryRecord[]
     | undefined;

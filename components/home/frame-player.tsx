@@ -14,6 +14,8 @@ const KEY_FRAMES = [FIRST_FRAME, 61, 122, 183, LAST_FRAME];
 const DEFAULT_FRAME_FPS = 25;
 const DEFAULT_FRAME_INTERVAL_MS = 1000 / DEFAULT_FRAME_FPS;
 const PRELOAD_RADIUS = 8;
+const PRELOAD_CONCURRENCY = 6;
+const MAX_CACHED_FRAMES = 48;
 
 function clampFrame(frame: number) {
   return Math.max(FIRST_FRAME, Math.min(LAST_FRAME, frame));
@@ -60,6 +62,33 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
     const preloadPromisesRef = useRef<Map<number, Promise<HTMLImageElement>>>(new Map());
     const failedFramesRef = useRef<Set<number>>(new Set());
 
+    const cacheImage = useCallback(
+      (frame: number, image: HTMLImageElement) => {
+        const images = imagesRef.current;
+        images.delete(frame);
+        images.set(frame, image);
+
+        while (images.size > MAX_CACHED_FRAMES) {
+          const oldestFrame = images.keys().next().value as number | undefined;
+          if (oldestFrame === undefined) {
+            break;
+          }
+
+          if (oldestFrame === currentFrameRef.current) {
+            const currentImage = images.get(oldestFrame);
+            images.delete(oldestFrame);
+            if (currentImage) {
+              images.set(oldestFrame, currentImage);
+            }
+            continue;
+          }
+
+          images.delete(oldestFrame);
+        }
+      },
+      [],
+    );
+
     const preloadFrame = useCallback((frame: number): Promise<HTMLImageElement> => {
       const nextFrame = clampFrame(frame);
 
@@ -70,6 +99,7 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
       if (imagesRef.current.has(nextFrame)) {
         const cachedImg = imagesRef.current.get(nextFrame)!;
         if (cachedImg.complete && cachedImg.naturalWidth > 0) {
+          cacheImage(nextFrame, cachedImg);
           return Promise.resolve(cachedImg);
         }
       }
@@ -90,7 +120,7 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
           }
 
           settled = true;
-          imagesRef.current.set(nextFrame, frameImage);
+          cacheImage(nextFrame, frameImage);
           preloadPromisesRef.current.delete(nextFrame);
           resolve(frameImage);
         };
@@ -118,18 +148,29 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
 
       preloadPromisesRef.current.set(nextFrame, promise);
       return promise;
-    }, []);
+    }, [cacheImage]);
 
     const preloadRange = useCallback(
       async (fromFrame: number, toFrame: number) => {
         const start = clampFrame(Math.min(fromFrame, toFrame));
         const end = clampFrame(Math.max(fromFrame, toFrame));
 
-        await Promise.all(
-          Array.from({ length: end - start + 1 }, (_, index) =>
-            preloadFrame(start + index),
-          ),
+        const frames = Array.from(
+          { length: end - start + 1 },
+          (_, index) => start + index,
         );
+
+        for (
+          let index = 0;
+          index < frames.length;
+          index += PRELOAD_CONCURRENCY
+        ) {
+          await Promise.all(
+            frames
+              .slice(index, index + PRELOAD_CONCURRENCY)
+              .map((frame) => preloadFrame(frame)),
+          );
+        }
       },
       [preloadFrame],
     );
@@ -275,10 +316,13 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
             return;
           }
 
-          await preloadRange(fromFrame, toFrame);
+          await preloadFrame(fromFrame);
+          paintFrame(fromFrame);
+          void preloadRange(fromFrame, toFrame);
           scheduleNearbyPreload(toFrame);
 
           if (options?.reducedMotion) {
+            await preloadFrame(toFrame);
             paintFrame(toFrame);
             return;
           }
@@ -290,6 +334,13 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
             const step = fromFrame < toFrame ? 1 : -1;
             let lastPaintedFrame = fromFrame;
             const startTime = window.performance.now();
+
+            const finish = async () => {
+              await preloadFrame(toFrame);
+              paintFrame(toFrame);
+              animationFrameRef.current = null;
+              resolve();
+            };
 
             const tick = (now: number) => {
               const progress = clamp((now - startTime) / durationMs, 0, 1);
@@ -305,8 +356,7 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
               }
 
               if (progress >= 1) {
-                animationFrameRef.current = null;
-                resolve();
+                void finish();
                 return;
               }
 
@@ -322,7 +372,13 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
           scheduleNearbyPreload(frame);
         },
       }),
-      [cancelAnimation, paintFrame, preloadRange, scheduleNearbyPreload],
+      [
+        cancelAnimation,
+        paintFrame,
+        preloadFrame,
+        preloadRange,
+        scheduleNearbyPreload,
+      ],
     );
 
     return (
@@ -330,10 +386,17 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
         ref={canvasRef}
         id="hero-frame-canvas"
         role="img"
-        aria-label={alt}
-        className={`${className ?? ""} block`}
-        style={{ height: "100vh", width: "100vw" }}
-      />
+      aria-label={alt}
+      className={`${className ?? ""} block`}
+      style={{
+        backgroundImage: `url("${getFrameSrc(initialFrame)}")`,
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        height: "100vh",
+        width: "100vw",
+      }}
+    />
     );
   },
 );

@@ -68,7 +68,7 @@ export function CollectionsClient({
 }
 
 function CollectionsConvex() {
-  const products = useQuery(api.products.list) as ProductRecord[] | undefined;
+  const products = useQuery(api.products.listAdmin) as ProductRecord[] | undefined;
   const collections = useQuery(api.collections.list) as
     | CollectionRecord[]
     | undefined;

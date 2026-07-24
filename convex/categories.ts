@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./lib/authorization";
 
 const categoryType = v.union(v.literal("clothing"), v.literal("footwear"));
 
@@ -42,8 +43,8 @@ export const list = query({
       ? await ctx.db
           .query("categories")
           .withIndex("by_type", (q) => q.eq("type", type))
-          .collect()
-      : await ctx.db.query("categories").collect();
+          .take(200)
+      : await ctx.db.query("categories").take(200);
 
     return categories.sort((a, b) => a.sortOrder - b.sortOrder);
   },
@@ -52,6 +53,7 @@ export const list = query({
 export const ensureDefaults = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     let created = 0;
 
@@ -92,6 +94,7 @@ export const upsert = mutation({
     sortOrder: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     const slug = args.slug?.trim() || slugify(args.name);
 
@@ -122,7 +125,7 @@ export const upsert = mutation({
         const products = await ctx.db
           .query("products")
           .withIndex("by_category_slug", (q) => q.eq("categorySlug", previous.slug))
-          .collect();
+          .take(500);
 
         await Promise.all(
           products.map((product) =>
@@ -153,6 +156,7 @@ export const remove = mutation({
     id: v.id("categories"),
   },
   handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     const category = await ctx.db.get(id);
     if (!category) {
       return;
@@ -163,7 +167,7 @@ export const remove = mutation({
     const products = await ctx.db
       .query("products")
       .withIndex("by_category_slug", (q) => q.eq("categorySlug", category.slug))
-      .collect();
+      .take(500);
 
     await Promise.all(
       products.map((product) =>

@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   createHash,
   createPrivateKey,
@@ -80,6 +82,19 @@ export function getAuthJwks() {
 
 export async function hashSessionToken(sessionToken: string) {
   return await sha256Hex(sessionToken);
+}
+
+function getAdminEmails() {
+  return new Set(
+    (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+export function isServerAdminEmail(email: string | undefined) {
+  return Boolean(email && getAdminEmails().has(email.trim().toLowerCase()));
 }
 
 export function signConvexJwt(payload: {

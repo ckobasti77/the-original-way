@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./lib/authorization";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const collections = await ctx.db.query("collections").order("desc").collect();
+    const collections = await ctx.db.query("collections").order("desc").take(200);
 
     return await Promise.all(
       collections.map(async (collection) => {
@@ -31,6 +32,7 @@ export const upsert = mutation({
     productIds: v.array(v.id("products")),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     const { id, ...collection } = args;
 
@@ -55,6 +57,7 @@ export const remove = mutation({
     id: v.id("collections"),
   },
   handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(id);
   },
 });

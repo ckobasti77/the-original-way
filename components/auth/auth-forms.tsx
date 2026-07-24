@@ -318,16 +318,6 @@ export function ForgotPasswordForm() {
             pendingLabel={copy.submit.pending[language]}
           />
 
-          {state?.resetLink ? (
-            <div className="pt-1">
-              <Link
-                href={state.resetLink}
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.08)] px-4 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-[var(--text-primary)] transition hover:bg-[rgba(var(--accent-rgb),0.12)]"
-              >
-                {copy.links.resetLink[language]}
-              </Link>
-            </div>
-          ) : null}
         </form>
       </AuthCard>
     </div>

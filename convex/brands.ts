@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
+import { requireAdmin } from "./lib/authorization";
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const brands = await ctx.db.query("brands").order("desc").collect();
+    const brands = await ctx.db.query("brands").order("desc").take(200);
 
     return await Promise.all(
       brands.map(async (brand) => {
@@ -30,6 +31,7 @@ export const upsert = mutation({
     externalLogoUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     const { id, ...brand } = args;
 
@@ -54,9 +56,10 @@ export const remove = mutation({
     id: v.id("brands"),
   },
   handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(id);
 
-    const products = await ctx.db.query("products").collect();
+    const products = await ctx.db.query("products").take(500);
     await Promise.all(
       products.map((product) => {
         if (product.brandId === id) {
@@ -73,7 +76,8 @@ export const remove = mutation({
 export const clear = mutation({
   args: {},
   handler: async (ctx) => {
-    const existing = await ctx.db.query("brands").collect();
+    await requireAdmin(ctx);
+    const existing = await ctx.db.query("brands").take(200);
     for (const b of existing) {
       await ctx.db.delete(b._id);
     }
@@ -86,6 +90,7 @@ export const seedWithStorage = mutation({
     logoStorageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db
       .query("brands")
       .filter((q) => q.eq(q.field("name"), args.name))
@@ -112,6 +117,7 @@ export const seedWithStorage = mutation({
 export const seedFromUrls = action({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     // 1. Clear all existing brands first
     await ctx.runMutation(api.brands.clear);
 

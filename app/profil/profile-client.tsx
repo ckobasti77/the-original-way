@@ -7,6 +7,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { logout } from "@/app/prijava/actions";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { localizeHref } from "@/lib/storefront-i18n";
 
 type ProfileValues = {
@@ -19,6 +20,14 @@ type ProfileValues = {
   houseNumber: string;
   addressLine2: string;
   deliveryNote: string;
+};
+
+type ProfileOrder = {
+  _id: Id<"orders">;
+  orderNumber: string;
+  status: string;
+  createdAt: number;
+  totalSale: number;
 };
 
 const COPY = {
@@ -89,7 +98,7 @@ export function ProfileClient() {
   const copy = COPY[language];
   const { isAuthenticated, isLoading } = useConvexAuth();
   const user = useQuery(api.auth.me);
-  const orders = useQuery(api.orders.mine);
+  const orders = useQuery(api.orders.mine) as ProfileOrder[] | undefined;
   const updateProfile = useMutation(api.auth.updateMyProfile);
   const [values, setValues] = useState<ProfileValues>(EMPTY);
   const [loadedId, setLoadedId] = useState<string | null>(null);

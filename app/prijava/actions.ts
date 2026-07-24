@@ -13,7 +13,6 @@ type FieldName = "firstName" | "lastName" | "email" | "password" | "confirmPassw
 export type AuthActionState = {
   fieldErrors?: Partial<Record<FieldName, string[]>>;
   message?: string;
-  resetLink?: string;
 };
 
 const EMPTY_STATE: AuthActionState = {};
@@ -30,12 +29,10 @@ function isValidEmail(email: string) {
 function makeState(
   message: string,
   fieldErrors?: AuthActionState["fieldErrors"],
-  resetLink?: string,
 ) {
   return {
     fieldErrors,
     message,
-    resetLink,
   };
 }
 
@@ -195,7 +192,7 @@ export async function register(
   const convex = createServerConvexClient();
 
   try {
-    const result = await convex.mutation(api.auth.register, {
+    const result = await convex.action(api.auth.register, {
       email: validated.email,
       firstName: validated.firstName,
       lastName: validated.lastName,
@@ -236,7 +233,7 @@ export async function login(
   const convex = createServerConvexClient();
 
   try {
-    const result = await convex.mutation(api.auth.login, {
+    const result = await convex.action(api.auth.login, {
       email: validated.email,
       password: validated.password,
     });
@@ -248,7 +245,9 @@ export async function login(
   }
 
   const safeNext =
-    requestedNext.startsWith(`/${language}/`) && !requestedNext.startsWith("//")
+    requestedNext.startsWith("/") &&
+    !requestedNext.startsWith("//") &&
+    !requestedNext.includes("\\")
       ? requestedNext
       : `/${language}/profil`;
   redirect(safeNext);
@@ -271,21 +270,12 @@ export async function requestPasswordReset(
   const convex = createServerConvexClient();
 
   try {
-    const result = await convex.mutation(api.auth.requestPasswordReset, {
+    await convex.action(api.auth.requestPasswordReset, {
       email: validated.email,
+      locale: language,
     });
 
-    const resetLink = result.resetLink
-      ? `/${language}${result.resetLink}`
-      : undefined;
-
-    return makeState(
-      resetLink
-        ? messages.forgotSuccessWithLink[language]
-        : messages.forgotSuccessWithoutLink[language],
-      undefined,
-      resetLink,
-    );
+    return makeState(messages.forgotSuccessWithoutLink[language]);
   } catch (error) {
     void error;
     return makeState(messages.forgotSuccessWithoutLink[language]);

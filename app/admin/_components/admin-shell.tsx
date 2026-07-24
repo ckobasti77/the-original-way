@@ -2,144 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { adminCredentials, adminNavItems } from "../_lib/constants";
+import { logout } from "@/app/prijava/actions";
+import { adminNavItems } from "../_lib/constants";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const sessionAuth = localStorage.getItem("tow_admin_auth");
-    if (sessionAuth === "true") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsLoggedIn(true);
-    }
-    setIsCheckingAuth(false);
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (
-      normalizedEmail === adminCredentials.email &&
-      password === adminCredentials.password
-    ) {
-      localStorage.setItem("tow_admin_auth", "true");
-      setIsLoggedIn(true);
-      setError("");
-      return;
-    }
-
-    setError("Neispravni kredencijali. Pokusajte ponovo.");
-  };
-
-  if (isCheckingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0d100e] font-sans text-white">
-        <div className="text-center animate-pulse">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-          <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-white/50">
-            Provera autorizacije...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0d100e] p-4 font-sans text-white">
-        <div className="pointer-events-none absolute left-1/4 top-1/4 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#276c56]/10 blur-[120px]" />
-        <div className="pointer-events-none absolute bottom-1/4 right-1/4 h-96 w-96 translate-x-1/2 translate-y-1/2 rounded-full bg-white/5 blur-[120px]" />
-
-        <div className="relative z-10 w-full max-w-md">
-          <div className="mb-8 text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#276c56] transition-colors">
-              The Original Way
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">Admin Panel</h1>
-            <p className="mt-2 text-sm text-white/50">
-              Prijavite se za pristup evidenciji i katalogu
-            </p>
-          </div>
-
-          <form
-            onSubmit={handleLogin}
-            className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl sm:p-8"
-          >
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-xs font-bold uppercase tracking-wider text-white/60"
-              >
-                Email adresa
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-white/20 focus:border-[#276c56] focus:bg-white/[0.07]"
-                placeholder="theoriginalway@gmail.com"
-                required
-                autoFocus
-                autoComplete="email"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-xs font-bold uppercase tracking-wider text-white/60"
-              >
-                Lozinka
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-white/20 focus:border-[#276c56] focus:bg-white/[0.07]"
-                placeholder="Unesite lozinku"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            {error ? (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3.5 py-2.5 text-xs font-medium text-red-400">
-                {error}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              className="w-full cursor-pointer rounded-lg bg-[#276c56] py-3 text-sm font-bold text-white shadow-lg shadow-[#276c56]/20 transition-all hover:bg-[#205947] active:scale-[0.98]"
-            >
-              Prijavi se
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <Link
-              href="/"
-              className="text-xs font-semibold uppercase tracking-wider text-white/40 transition-colors hover:text-white"
-            >
-              Nazad na pocetnu
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-[#eef0eb] text-[#141816]">
@@ -226,16 +96,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             <div className="mt-auto flex flex-col gap-4">
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.removeItem("tow_admin_auth");
-                  setIsLoggedIn(false);
-                }}
-                className="w-full cursor-pointer rounded-md border border-white/10 bg-white/[0.05] px-4 py-2.5 text-center text-xs font-bold text-white transition-all hover:border-white/20 hover:bg-white/10"
-              >
-                Odjavi se
-              </button>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="w-full cursor-pointer rounded-md border border-white/10 bg-white/[0.05] px-4 py-2.5 text-center text-xs font-bold text-white transition-all hover:border-white/20 hover:bg-white/10"
+                >
+                  Odjavi se
+                </button>
+              </form>
 
               <div className="rounded-lg border border-white/10 bg-white/[0.07] p-4">
                 <p className="text-sm font-semibold text-white">Interni ulaz</p>

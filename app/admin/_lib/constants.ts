@@ -51,11 +51,6 @@ export const adminNavItems = [
   { href: "/admin/podesavanja", label: "Podesavanja" },
 ];
 
-export const adminCredentials = {
-  email: "theoriginalway@gmail.com",
-  password: "jasamsazvezdare",
-} as const;
-
 export const productTypes = [
   { value: "clothing", label: "Odeca" },
   { value: "footwear", label: "Obuca" },

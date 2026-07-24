@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type QueryCtx } from "./_generated/server";
+import { requireAdmin } from "./lib/authorization";
 
 const productArgs = {
   name: v.string(),
@@ -28,11 +29,9 @@ function slugify(value: string) {
     .replace(/(^-|-$)+/g, "");
 }
 
-export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const products = await ctx.db.query("products").order("desc").collect();
-    const categories = await ctx.db.query("categories").collect();
+async function hydrateProducts(ctx: QueryCtx) {
+    const products = await ctx.db.query("products").order("desc").take(500);
+    const categories = await ctx.db.query("categories").take(200);
     const categoriesBySlug = new Map(
       categories.map((category) => [category.slug, category]),
     );
@@ -68,6 +67,25 @@ export const list = query({
         };
       }),
     );
+}
+
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const products = await hydrateProducts(ctx);
+
+    return products.map(({ costPrice, ...product }) => {
+      void costPrice;
+      return product;
+    });
+  },
+});
+
+export const listAdmin = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return await hydrateProducts(ctx);
   },
 });
 
@@ -84,8 +102,8 @@ export const listRecommended = query({
         q.eq("isRecommended", true),
       )
       .order("asc")
-      .collect();
-    const categories = await ctx.db.query("categories").take(100);
+      .take(limit);
+    const categories = await ctx.db.query("categories").take(200);
     const categoriesBySlug = new Map(
       categories.map((category) => [category.slug, category]),
     );
@@ -107,8 +125,11 @@ export const listRecommended = query({
           }
         }
 
+        const { costPrice, ...publicProduct } = product;
+        void costPrice;
+
         return {
-          ...product,
+          ...publicProduct,
           slug: `${slugify(product.name)}-${product._id.slice(-6)}`,
           imageUrls: [
             ...storedUrls.filter((url): url is string => Boolean(url)),
@@ -122,16 +143,7 @@ export const listRecommended = query({
       }),
     );
 
-    return enrichedProducts
-      .sort((a, b) => {
-        const orderA = a.recommendationOrder ?? Number.MAX_SAFE_INTEGER;
-        const orderB = b.recommendationOrder ?? Number.MAX_SAFE_INTEGER;
-        if (orderA !== orderB) {
-          return orderA - orderB;
-        }
-        return b.createdAt - a.createdAt;
-      })
-      .slice(0, limit);
+    return enrichedProducts;
   },
 });
 
@@ -141,6 +153,7 @@ export const upsert = mutation({
     ...productArgs,
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     const { id, ...product } = args;
 
@@ -173,9 +186,10 @@ export const remove = mutation({
     id: v.id("products"),
   },
   handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(id);
 
-    const collections = await ctx.db.query("collections").collect();
+    const collections = await ctx.db.query("collections").take(500);
     await Promise.all(
       collections.map((collection) =>
         ctx.db.patch(collection._id, {

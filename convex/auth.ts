@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 
 import type { Doc } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import {
+  action,
+  env,
+  internalMutation,
   mutation,
   query,
   type DatabaseReader,
@@ -19,6 +23,8 @@ import {
   assertProfileOwnership,
   normalizeCourierProfile,
 } from "../lib/storefront-profile";
+import { isConfiguredAdminEmail } from "./lib/authorization";
+import { authRateLimiter } from "./lib/rateLimits";
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 30;
 const PASSWORD_RESET_TOKEN_DURATION_MS = 1000 * 60 * 60;
@@ -49,6 +55,45 @@ type PublicUser = {
   createdAt: number;
   updatedAt: number;
 };
+
+type AuthResult = {
+  sessionToken: string;
+  sessionExpiresAt: number;
+  user: PublicUser;
+};
+
+const publicUserValidator = v.object({
+  _id: v.id("users"),
+  firstName: v.string(),
+  lastName: v.string(),
+  email: v.string(),
+  phone: v.optional(v.string()),
+  city: v.optional(v.string()),
+  postalCode: v.optional(v.string()),
+  street: v.optional(v.string()),
+  houseNumber: v.optional(v.string()),
+  addressLine2: v.optional(v.string()),
+  deliveryNote: v.optional(v.string()),
+  profileCompletedAt: v.optional(v.number()),
+  lastLoginAt: v.optional(v.number()),
+  lastOrderAt: v.optional(v.number()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+});
+
+const authResultValidator = v.object({
+  sessionToken: v.string(),
+  sessionExpiresAt: v.number(),
+  user: publicUserValidator,
+});
+
+async function getRateLimitKey(
+  ctx: { meta: { getRequestMetadata(): Promise<{ ip: string | null }> } },
+  email: string,
+) {
+  const request = await ctx.meta.getRequestMetadata();
+  return `${request.ip ?? "unknown"}:${normalizeEmail(email)}`;
+}
 
 function toPublicUser(user: Doc<"users">): PublicUser {
   return {
@@ -123,7 +168,7 @@ async function revokeSessionsForUser(ctx: WriterCtx, userId: Doc<"users">["_id"]
   const sessions = await ctx.db
     .query("sessions")
     .withIndex("by_user_id", (q) => q.eq("userId", userId))
-    .collect();
+    .take(500);
 
   for (const session of sessions) {
     await ctx.db.delete(session._id);
@@ -139,7 +184,7 @@ async function createPasswordResetToken(ctx: WriterCtx, userId: Doc<"users">["_i
   const existingTokens = await ctx.db
     .query("passwordResetTokens")
     .withIndex("by_user_id", (q) => q.eq("userId", userId))
-    .collect();
+    .take(100);
 
   for (const token of existingTokens) {
     await ctx.db.delete(token._id);
@@ -192,14 +237,15 @@ async function syncShippingFromOrder(
   });
 }
 
-export const register = mutation({
+export const registerInternal = internalMutation({
   args: {
     firstName: v.string(),
     lastName: v.string(),
     email: v.string(),
     password: v.string(),
   },
-  handler: async (ctx, args) => {
+  returns: authResultValidator,
+  handler: async (ctx, args): Promise<AuthResult> => {
     const firstName = safeTrim(args.firstName);
     const lastName = safeTrim(args.lastName);
     const email = safeTrim(args.email);
@@ -207,6 +253,10 @@ export const register = mutation({
 
     if (!firstName || !lastName || !emailNormalized || !args.password.trim()) {
       throw new Error("Sva polja su obavezna.");
+    }
+
+    if (isConfiguredAdminEmail(emailNormalized)) {
+      throw new Error("Registracija za ovu adresu nije dostupna.");
     }
 
     const existingUser = await getUserByEmailNormalized(ctx, emailNormalized);
@@ -250,12 +300,31 @@ export const register = mutation({
   },
 });
 
-export const login = mutation({
+export const register = action({
+  args: {
+    firstName: v.string(),
+    lastName: v.string(),
+    email: v.string(),
+    password: v.string(),
+  },
+  returns: authResultValidator,
+  handler: async (ctx, args): Promise<AuthResult> => {
+    await authRateLimiter.limit(ctx, "register", {
+      key: await getRateLimitKey(ctx, args.email),
+      throws: true,
+    });
+
+    return await ctx.runMutation(internal.auth.registerInternal, args);
+  },
+});
+
+export const loginInternal = internalMutation({
   args: {
     email: v.string(),
     password: v.string(),
   },
-  handler: async (ctx, args) => {
+  returns: authResultValidator,
+  handler: async (ctx, args): Promise<AuthResult> => {
     const emailNormalized = normalizeEmail(args.email);
     const user = await getUserByEmailNormalized(ctx, emailNormalized);
 
@@ -284,25 +353,113 @@ export const login = mutation({
   },
 });
 
-export const requestPasswordReset = mutation({
+export const login = action({
+  args: {
+    email: v.string(),
+    password: v.string(),
+  },
+  returns: authResultValidator,
+  handler: async (ctx, args): Promise<AuthResult> => {
+    await authRateLimiter.limit(ctx, "login", {
+      key: await getRateLimitKey(ctx, args.email),
+      throws: true,
+    });
+
+    return await ctx.runMutation(internal.auth.loginInternal, args);
+  },
+});
+
+export const requestPasswordResetInternal = internalMutation({
   args: {
     email: v.string(),
   },
+  returns: v.union(
+    v.null(),
+    v.object({
+      email: v.string(),
+      token: v.string(),
+    }),
+  ),
   handler: async (ctx, args) => {
     const emailNormalized = normalizeEmail(args.email);
     const user = await getUserByEmailNormalized(ctx, emailNormalized);
 
     if (!user) {
-      return {
-        resetLink: null as string | null,
-      };
+      return null;
     }
 
     const token = await createPasswordResetToken(ctx, user._id);
 
     return {
-      resetLink: `/prijava/nova-sifra?token=${encodeURIComponent(token.rawToken)}`,
+      email: user.email,
+      token: token.rawToken,
     };
+  },
+});
+
+export const requestPasswordReset = action({
+  args: {
+    email: v.string(),
+    locale: v.union(v.literal("sr"), v.literal("en")),
+  },
+  returns: v.object({ ok: v.boolean() }),
+  handler: async (ctx, args) => {
+    await authRateLimiter.limit(ctx, "passwordReset", {
+      key: await getRateLimitKey(ctx, args.email),
+      throws: true,
+    });
+
+    const request = await ctx.runMutation(
+      internal.auth.requestPasswordResetInternal,
+      { email: args.email },
+    );
+
+    if (!request) {
+      return { ok: true };
+    }
+
+    const apiKey = env.RESEND_API_KEY;
+    const baseUrl = env.PASSWORD_RESET_BASE_URL?.replace(/\/+$/, "");
+    const from = env.AUTH_EMAIL_FROM;
+
+    if (!apiKey || !baseUrl || !from) {
+      console.error(
+        "Password reset email is disabled because RESEND_API_KEY, PASSWORD_RESET_BASE_URL, or AUTH_EMAIL_FROM is missing.",
+      );
+      return { ok: true };
+    }
+
+    const resetUrl = `${baseUrl}/${args.locale}/prijava/nova-sifra?token=${encodeURIComponent(request.token)}`;
+    const subject =
+      args.locale === "en"
+        ? "Reset your The Original Way password"
+        : "Promenite lozinku za The Original Way";
+    const intro =
+      args.locale === "en"
+        ? "Use the secure link below to set a new password."
+        : "Otvorite bezbedan link ispod da postavite novu lozinku.";
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: request.email,
+        subject,
+        html: `<p>${intro}</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Link važi jedan sat.</p>`,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Password reset email failed.", {
+        status: response.status,
+      });
+    }
+
+    return { ok: true };
   },
 });
 
@@ -311,6 +468,7 @@ export const resetPassword = mutation({
     password: v.string(),
     token: v.string(),
   },
+  returns: authResultValidator,
   handler: async (ctx, args) => {
     const token = safeTrim(args.token);
     const password = args.password;
@@ -366,6 +524,7 @@ export const logout = mutation({
   args: {
     sessionTokenHash: v.string(),
   },
+  returns: v.object({ ok: v.boolean() }),
   handler: async (ctx, args) => {
     const session = await getSessionByTokenHash(ctx, args.sessionTokenHash);
 
@@ -420,6 +579,13 @@ export const sessionByTokenHash = query({
 
 export const me = query({
   args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      ...publicUserValidator.fields,
+      isAdmin: v.boolean(),
+    }),
+  ),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -431,7 +597,10 @@ export const me = query({
       return null;
     }
 
-    return toPublicUser(user);
+    return {
+      ...toPublicUser(user),
+      isAdmin: isConfiguredAdminEmail(identity.email),
+    };
   },
 });
 

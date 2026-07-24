@@ -99,7 +99,7 @@ export function EvidenceClient({ convexEnabled }: { convexEnabled: boolean }) {
 
 function EvidenceConvex() {
   const orders = useQuery(api.orders.list) as OrderRecord[] | undefined;
-  const products = useQuery(api.products.list) as ProductRecord[] | undefined;
+  const products = useQuery(api.products.listAdmin) as ProductRecord[] | undefined;
   const createOrder = useMutation(api.orders.create);
   const updateOrderStatus = useMutation(api.orders.updateStatus);
   const [customer, setCustomer] = useState(emptyCustomer);

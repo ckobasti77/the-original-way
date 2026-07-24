@@ -22,12 +22,6 @@ import { gsap } from "gsap";
 const INTRO_START_FRAME = 1;
 const STOP_FRAMES = [61, 122, 183, 245] as const;
 const INTRO_END_FRAME = STOP_FRAMES[0];
-const FRAME_SEGMENTS = [
-  [1, 61],
-  [62, 122],
-  [123, 183],
-  [184, 245],
-] as const;
 const STEP_TRIGGER_DELTA = 56;
 const TOUCH_TRIGGER_DELTA = 52;
 const INTRO_DURATION_MS = 2000;
@@ -317,17 +311,14 @@ export function HeroScrollytelling() {
       return;
     }
 
-    const currentSegment = FRAME_SEGMENTS[stopIndex] ?? FRAME_SEGMENTS[0];
-    const previousSegment =
-      FRAME_SEGMENTS[Math.max(0, stopIndex - 1)] ?? currentSegment;
-    const nextSegment =
-      FRAME_SEGMENTS[Math.min(FRAME_SEGMENTS.length - 1, stopIndex + 1)] ??
-      currentSegment;
+    const currentFrame = getFrameForStop(stopIndex);
+    const nextFrame = getFrameForStop(
+      Math.min(stopIndex + 1, maxStopIndex),
+    );
 
-    void framePlayer.primeRange(currentSegment[0], currentSegment[1]);
-    void framePlayer.primeRange(previousSegment[0], previousSegment[1]);
-    void framePlayer.primeRange(nextSegment[0], nextSegment[1]);
-  }, [stopIndex]);
+    void framePlayer.primeRange(currentFrame, currentFrame);
+    void framePlayer.primeRange(nextFrame, nextFrame);
+  }, [getFrameForStop, maxStopIndex, stopIndex]);
 
   useEffect(() => {
     if (isTransitioning) {
