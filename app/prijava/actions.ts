@@ -215,7 +215,7 @@ export async function register(
     return makeState(messages.registerFailed[language]);
   }
 
-  redirect("/profil");
+  redirect(`/${language}/profil`);
 }
 
 export async function login(
@@ -225,6 +225,7 @@ export async function login(
   void state;
 
   const language = getLanguage(formData);
+  const requestedNext = getValue(formData, "next");
   const messages = AUTH_COPY[language].messages;
   const validated = validateLoginForm(formData);
 
@@ -246,7 +247,11 @@ export async function login(
     return makeState(messages.invalidCredentials[language]);
   }
 
-  redirect("/profil");
+  const safeNext =
+    requestedNext.startsWith(`/${language}/`) && !requestedNext.startsWith("//")
+      ? requestedNext
+      : `/${language}/profil`;
+  redirect(safeNext);
 }
 
 export async function requestPasswordReset(
@@ -270,7 +275,9 @@ export async function requestPasswordReset(
       email: validated.email,
     });
 
-    const resetLink = result.resetLink ?? undefined;
+    const resetLink = result.resetLink
+      ? `/${language}${result.resetLink}`
+      : undefined;
 
     return makeState(
       resetLink
@@ -320,7 +327,7 @@ export async function resetPassword(
     return makeState(messages.resetFailed[language]);
   }
 
-  redirect("/profil");
+  redirect(`/${language}/profil`);
 }
 
 export async function logout() {
@@ -338,5 +345,6 @@ export async function logout() {
   }
 
   cookieStore.delete(AUTH_SESSION_COOKIE);
-  redirect("/");
+  const locale = cookieStore.get("tow-locale")?.value === "en" ? "en" : "sr";
+  redirect(`/${locale}`);
 }

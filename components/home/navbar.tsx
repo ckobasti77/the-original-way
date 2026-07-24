@@ -2,12 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useConvexAuth } from "convex/react";
 
 import { useSettings } from "@/components/settings-provider";
 import { CartDrawer, CartNavButton } from "@/components/shop/cart-drawer";
 import { ProductSearch } from "@/components/shop/product-search";
+import { localizeHref, stripLocale } from "@/lib/storefront-i18n";
 import logo from "@/public/logos/logo.png";
 
 import { BRAND_NAME, NAV_LINKS, UI_COPY } from "./content";
@@ -23,7 +25,7 @@ const NAVBAR_BOTTOM_MASK =
   "linear-gradient(to bottom, black 0%, black 66%, transparent 100%)";
 
 const ICON_BUTTON_CLASS =
-  "nav-text inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]";
+  "nav-text inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface)] text-[var(--text-secondary)] transition hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]";
 
 const MENU_ROW_CLASS =
   "flex w-full items-center justify-between rounded-[1.1rem] border border-[var(--border-soft)] bg-[var(--surface)] px-4 py-3 text-left transition hover:border-[var(--border-strong)] hover:bg-[var(--surface-strong)]";
@@ -168,7 +170,7 @@ function LanguageToggle({ variant = "icon" }: { variant?: "icon" | "menu" }) {
   );
 }
 
-function ProfileMenu({
+export function ProfileMenu({
   authHref,
   authLabel,
 }: {
@@ -312,18 +314,21 @@ function ProfileMenu({
 
 export function Navbar() {
   const { language } = useSettings();
+  const pathname = usePathname();
+  const isHomePath = stripLocale(pathname) === "/";
+  const [isInsideStory, setIsInsideStory] = useState(isHomePath);
+  const [storyTone, setStoryTone] = useState<"light" | "dark">("light");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { isAuthenticated } = useConvexAuth();
   const copy = UI_COPY[language];
-  const authHref = isAuthenticated ? "/profil" : "/prijava";
+  const authHref = localizeHref(isAuthenticated ? "/profil" : "/prijava", language);
   const authLabel = isAuthenticated ? copy.profileCta : copy.loginCta;
   const convexEnabled = Boolean(process.env.NEXT_PUBLIC_CONVEX_URL);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const burgerButtonRef = useRef<HTMLButtonElement>(null);
-  const transitionHiddenRef = useRef(false);
 
   const toggleAccordion = (href: string) => {
     setExpandedSection((prev) => (prev === href ? null : href));
@@ -346,30 +351,58 @@ export function Navbar() {
   }, [drawerOpen]);
 
   useEffect(() => {
-    const handleStart = () => {
-      transitionHiddenRef.current = true;
-      setIsHidden(true);
+    const handleStart = (event: Event) => {
+      const nextStop = (event as CustomEvent<{ to?: number }>).detail?.to ?? 0;
+      setStoryTone(nextStop === 0 || nextStop === 2 ? "light" : "dark");
       closeDrawer();
-    };
-    const handleEnd = () => {
-      transitionHiddenRef.current = false;
-      setIsHidden(false);
     };
 
     window.addEventListener("tow-transition-start", handleStart);
-    window.addEventListener("tow-transition-end", handleEnd);
 
     return () => {
       window.removeEventListener("tow-transition-start", handleStart);
-      window.removeEventListener("tow-transition-end", handleEnd);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isHomePath) {
+      return;
+    }
+
+    const storyElement = document.querySelector<HTMLElement>(
+      "[data-tow-scrollytelling='true']",
+    );
+    if (!storyElement) {
+      return;
+    }
+
+    const syncTone = () => {
+      setStoryTone(
+        storyElement.dataset.storyTone === "dark" ? "dark" : "light",
+      );
+    };
+
+    syncTone();
+    const observer = new MutationObserver(syncTone);
+    observer.observe(storyElement, {
+      attributeFilter: ["data-story-tone"],
+      attributes: true,
+    });
+
+    return () => observer.disconnect();
+  }, [isHomePath]);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
     let ticking = false;
 
     const isInsideScrollytelling = () => {
+      if (!isHomePath) {
+        return false;
+      }
+      if (typeof window !== "undefined" && window.scrollY < 50) {
+        return true;
+      }
       const storyElement = document.querySelector<HTMLElement>(
         "[data-tow-scrollytelling='true']",
       );
@@ -386,7 +419,9 @@ export function Navbar() {
       const currentScrollY = window.scrollY;
       const delta = currentScrollY - lastScrollY;
 
-      if (drawerOpen || transitionHiddenRef.current || isInsideScrollytelling()) {
+      const inside = isInsideScrollytelling();
+      setIsInsideStory(inside);
+      if (drawerOpen || inside) {
         if (drawerOpen) {
           setIsHidden(false);
         }
@@ -422,7 +457,7 @@ export function Navbar() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [drawerOpen]);
+  }, [drawerOpen, isHomePath]);
 
   useEffect(() => {
     if (!drawerOpen) {
@@ -470,14 +505,62 @@ export function Navbar() {
     };
   }, [drawerOpen]);
 
+  const headerStyle = isInsideStory
+    ? ({
+        "--navbar-bg":
+          storyTone === "light"
+            ? "rgba(248, 245, 239, 0.88)"
+            : "rgba(18, 18, 20, 0.88)",
+        "--page-bg": storyTone === "light" ? "#f3efe8" : "#111113",
+        "--page-bg-deep": storyTone === "light" ? "#e8e3db" : "#09090a",
+        "--text-primary": storyTone === "light" ? "#19191c" : "#fbf9f5",
+        "--text-secondary":
+          storyTone === "light"
+            ? "rgba(25,25,28,0.76)"
+            : "rgba(251,249,245,0.78)",
+        "--text-muted":
+          storyTone === "light"
+            ? "rgba(25,25,28,0.54)"
+            : "rgba(251,249,245,0.58)",
+        "--surface":
+          storyTone === "light"
+            ? "rgba(251,249,245,0.72)"
+            : "rgba(31,31,34,0.72)",
+        "--surface-strong":
+          storyTone === "light"
+            ? "rgba(251,249,245,0.94)"
+            : "rgba(42,42,46,0.92)",
+        "--surface-elevated":
+          storyTone === "light"
+            ? "rgba(251,249,245,0.97)"
+            : "rgba(30,30,33,0.97)",
+        "--surface-opaque": storyTone === "light" ? "#fbf9f5" : "#1d1d20",
+        "--border-soft":
+          storyTone === "light"
+            ? "rgba(25,25,28,0.16)"
+            : "rgba(251,249,245,0.18)",
+        "--border-strong":
+          storyTone === "light"
+            ? "rgba(25,25,28,0.34)"
+            : "rgba(251,249,245,0.38)",
+        "--accent": storyTone === "light" ? "#19191c" : "#fbf9f5",
+        "--accent-strong": storyTone === "light" ? "#050506" : "#ffffff",
+        "--accent-rgb": storyTone === "light" ? "25, 25, 28" : "251, 249, 245",
+        "--shadow-rgb": storyTone === "light" ? "25, 25, 28" : "0, 0, 0",
+      } as React.CSSProperties)
+    : undefined;
+
   return (
     <>
     <header 
-      className={`pointer-events-none fixed inset-x-0 top-0 z-30 flex flex-col transition-all ${
+      data-story-navbar={isInsideStory ? "true" : "false"}
+      data-story-tone={isInsideStory ? storyTone : undefined}
+      className={`pointer-events-none fixed inset-x-0 top-0 z-30 flex flex-col transition-[transform,opacity] ${
         isHidden 
-          ? "duration-300 ease-[cubic-bezier(0.3,0,0.8,0.15)] -translate-y-full opacity-0" 
-          : "duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-0 opacity-100"
+          ? "duration-[420ms] ease-[cubic-bezier(0.3,0,0.8,0.15)] -translate-y-[120%] opacity-0"
+          : "duration-[560ms] ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-0 opacity-100"
       }`}
+      style={headerStyle}
     >
       <div className="pointer-events-auto relative h-20 w-full px-4 md:px-8">
         {/* Layered glass background with a bottom fade-out */}
@@ -496,7 +579,7 @@ export function Navbar() {
           {/* Left Side: Logo and first 3 Navlinks */}
           <div className="flex items-center gap-8 lg:gap-12">
             <Link
-              href="/"
+              href={localizeHref("/", language)}
               scroll={false}
               className="inline-flex items-center justify-center transition hover:opacity-85"
               aria-label={BRAND_NAME}
@@ -520,7 +603,7 @@ export function Navbar() {
                 link.type === "simple" ? (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={localizeHref(link.href, language)}
                     prefetch={false}
                     className="nav-text inline-flex min-h-10 items-center px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
                   >
@@ -547,7 +630,7 @@ export function Navbar() {
                 link.type === "simple" ? (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={localizeHref(link.href, language)}
                     prefetch={false}
                     className="nav-text inline-flex min-h-10 items-center px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
                   >
@@ -569,7 +652,27 @@ export function Navbar() {
                 convexEnabled={convexEnabled}
               />
               <CartNavButton className={ICON_BUTTON_CLASS} />
-              <ProfileMenu authHref={authHref} authLabel={authLabel} />
+              <LanguageToggle />
+              <ThemeToggle />
+              {isAuthenticated ? (
+                <Link
+                  href={authHref}
+                  aria-label={copy.profile}
+                  className={ICON_BUTTON_CLASS}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21a8 8 0 0 0-16 0" />
+                    <circle cx="12" cy="8" r="4" />
+                  </svg>
+                </Link>
+              ) : (
+                <Link
+                  href={authHref}
+                  className="nav-login-cta tow-on-primary inline-flex min-h-10 items-center rounded-md bg-[var(--text-primary)] px-5 text-[0.72rem] font-bold uppercase tracking-[0.16em] shadow-[0_12px_28px_rgba(var(--shadow-rgb),0.18)] transition hover:-translate-y-0.5"
+                >
+                  {authLabel}
+                </Link>
+              )}
             </div>
 
             <div className="flex items-center gap-1 lg:hidden">
@@ -618,14 +721,14 @@ export function Navbar() {
       <div
         ref={sidebarRef}
         id="mobile-navigation"
-        className={`fixed right-0 top-0 bottom-0 z-50 flex h-screen w-full sm:w-[420px] max-w-[85vw] flex-col border-l border-[var(--border-soft)] bg-gradient-to-b from-[var(--surface-elevated)] to-[var(--surface-opaque)] backdrop-blur-[32px] shadow-[-25px_0_60px_rgba(var(--shadow-rgb),0.18)] transition-transform duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto lg:hidden ${
+        className={`fixed right-0 top-0 bottom-0 z-50 flex h-[100dvh] w-full max-w-[min(92vw,420px)] flex-col overflow-x-hidden border-l border-[var(--border-soft)] bg-gradient-to-b from-[var(--surface-elevated)] to-[var(--surface-opaque)] backdrop-blur-[32px] shadow-[-25px_0_60px_rgba(var(--shadow-rgb),0.18)] transition-transform duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto lg:hidden ${
           drawerOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Drawer Header */}
         <div className="flex h-20 items-center justify-between border-b border-[var(--border-soft)] px-6">
           <Link
-            href="/"
+            href={localizeHref("/", language)}
             onClick={closeDrawer}
             scroll={false}
             className="inline-flex items-center justify-center transition hover:opacity-85"
@@ -662,7 +765,7 @@ export function Navbar() {
         </div>
 
         {/* Drawer Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="flex-1 overflow-x-hidden overflow-y-auto px-6 py-8">
           <ProductSearch
             className="mb-7 grid gap-3 rounded-[1.2rem] border border-[var(--border-soft)] bg-[rgba(var(--accent-rgb),0.035)] p-3"
             convexEnabled={convexEnabled}
@@ -688,7 +791,7 @@ export function Navbar() {
                 return (
                   <div key={link.href} className={animateClass} style={transitionStyle}>
                     <Link
-                      href={link.href}
+                      href={localizeHref(link.href, language)}
                       prefetch={false}
                       onClick={closeDrawer}
                       className="nav-text block py-2 text-[0.82rem] font-bold uppercase tracking-[0.24em] text-[var(--text-primary)] transition hover:text-[var(--accent)]"
@@ -740,7 +843,7 @@ export function Navbar() {
                       {link.items?.map((item) => (
                         <Link
                           key={item.href}
-                          href={item.href}
+                          href={localizeHref(item.href, language)}
                           prefetch={false}
                           aria-label={item.ariaLabel[language]}
                           onClick={closeDrawer}

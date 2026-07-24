@@ -6,6 +6,7 @@ import { ProductFilters } from "@/components/shop/product-filters";
 import { getShopCatalog } from "@/lib/shop-data";
 import { applyShopFilters, parseShopFilters } from "@/lib/shop-filtering";
 import { formatShopPrice } from "@/lib/shop-taxonomy";
+import { STORE_COPY, type StoreLocale } from "@/lib/storefront-i18n";
 
 function sortSizes(sizes: string[]) {
   return [...sizes].sort((a, b) => {
@@ -22,9 +23,14 @@ function getSingleValue(values: string[]) {
 
 export default async function ProductsPage({
   searchParams,
+  params: routeParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+  params?: Promise<{ locale?: string }>;
 }) {
+  const route = routeParams ? await routeParams : undefined;
+  const locale: StoreLocale = route?.locale === "en" ? "en" : "sr";
+  const copy = STORE_COPY[locale].catalog;
   const params = await searchParams;
   const catalog = await getShopCatalog();
   const filters = parseShopFilters(params);
@@ -51,13 +57,13 @@ export default async function ProductsPage({
     filters.availability === "in-stock",
   ].some(Boolean);
 
-  const heroTitle = selectedCollection?.name ?? "Proizvodi";
+  const heroTitle = selectedCollection?.name ?? copy.title;
   const heroSubtitle = hasActiveFilters
-    ? "Visestruki izbor filtera je ukljucen, pa mozes da kombinujes vise kategorija, brendova i polova odjednom."
-    : "Jedna stranica za sve ulaze: kolekcije, muskarci, zene, odeca, obuca i pretraga.";
+    ? copy.filtered
+    : copy.intro;
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-primary)]">
+    <main className="store-shell min-h-screen text-[var(--text-primary)]">
       <Navbar />
 
       <section className="relative overflow-hidden border-b border-[var(--border-soft)] px-4 pb-10 pt-28 md:px-8 md:pb-14">
@@ -65,7 +71,7 @@ export default async function ProductsPage({
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_22rem] lg:items-end">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.26em] text-[var(--text-muted)]">
-              The Original Way katalog
+              {copy.eyebrow}
             </p>
             <h1 className="font-display mt-4 text-6xl font-semibold leading-[0.9] tracking-normal md:text-8xl">
               {heroTitle}
@@ -78,19 +84,19 @@ export default async function ProductsPage({
           <div className="grid grid-cols-3 gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-strong)] p-3 backdrop-blur-xl">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Artikli
+                {copy.items}
               </p>
               <p className="mt-1 text-2xl font-bold">{filteredProducts.length}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Brendovi
+                {copy.brands}
               </p>
               <p className="mt-1 text-2xl font-bold">{catalog.brands.length}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Od
+                {copy.from}
               </p>
               <p className="mt-1 text-lg font-bold">
                 {catalog.products.length > 0
@@ -107,7 +113,7 @@ export default async function ProductsPage({
           <Suspense
             fallback={
               <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-4 text-sm font-bold text-[var(--text-muted)]">
-                Filteri se ucitavaju...
+                {copy.loading}
               </div>
             }
           >
@@ -125,28 +131,28 @@ export default async function ProductsPage({
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                  Rezultati
+                  {copy.results}
                 </p>
                 <h2 className="mt-1 text-2xl font-semibold">
-                  {filteredProducts.length} proizvoda
+                  {filteredProducts.length} {copy.productCount}
                 </h2>
               </div>
               <p className="text-sm font-semibold text-[var(--text-muted)]">
-                Sortiranje:{" "}
+                {copy.sorting}:{" "}
                 {filters.sort === "price-asc"
-                  ? "cena uzbrdo"
+                  ? copy.priceAsc
                   : filters.sort === "price-desc"
-                    ? "cena nizbrdo"
-                    : "najnovije"}
+                    ? copy.priceDesc
+                    : copy.newest}
               </p>
             </div>
 
             {filteredProducts.length === 0 ? (
               <div className="grid min-h-[24rem] place-items-center rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface)] p-6 text-center">
                 <div>
-                  <p className="font-display text-4xl font-semibold">Nema poklapanja</p>
+                  <p className="font-display text-4xl font-semibold">{copy.emptyTitle}</p>
                   <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                    Resetuj deo filtera ili promeni cenu, velicinu i brend.
+                    {copy.emptyText}
                   </p>
                 </div>
               </div>

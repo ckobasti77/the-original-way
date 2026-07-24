@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
 import { bodyFont, displayFont } from "@/app/fonts";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
@@ -15,14 +16,17 @@ export const metadata: Metadata = {
     "A cinematic, chapter-based fashion homepage for The Original Way.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const requestHeaders = await headers();
+  const locale = requestHeaders.get("x-tow-locale") === "en" ? "en" : "sr";
+
   return (
     <html
-      lang="sr-Latn-RS"
+      lang={locale === "sr" ? "sr-Latn-RS" : "en"}
       suppressHydrationWarning
       className={`${bodyFont.variable} ${displayFont.variable} antialiased`}
     >
@@ -31,13 +35,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (window.location.pathname === '/') {
-                  window.localStorage.setItem('tow-theme', 'light');
-                  document.documentElement.dataset.theme = 'light';
-                } else {
-                  var theme = window.localStorage.getItem('tow-theme') || 'light';
-                  document.documentElement.dataset.theme = theme;
-                }
+                var theme = window.localStorage.getItem('tow-theme') || 'light';
+                document.documentElement.dataset.theme = theme;
               } catch (e) {}
             `,
           }}

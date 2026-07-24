@@ -543,37 +543,6 @@ export const CURATED_COLLECTIONS_COPY = {
 
 export const HOME_CONVERSION_COPY = {
   sr: {
-    featured: {
-      eyebrow: "Najtrazeniji izbor",
-      title: "Komadi koji najbrze zatvaraju dilemu.",
-      description:
-        "Tri jasna ulaza u katalog: toplo, lagano i svakodnevno. Svaki vodi direktno u filtere koji skrate izbor.",
-      primaryCta: "Otvori katalog",
-      secondaryCta: "Pitaj za velicinu",
-      cards: [
-        {
-          accent: "Zimski slojevi",
-          cta: "Pogledaj zimu",
-          href: "/proizvodi?collection=alpska-kapsula",
-          kicker: "Kaputi / pletiva / obuca",
-          title: "Toplina bez teskog izgleda.",
-        },
-        {
-          accent: "Letnji ritam",
-          cta: "Pogledaj leto",
-          href: "/proizvodi?collection=sunset-resort",
-          kicker: "Lan / lagani krojevi / patike",
-          title: "Cisto, prozracno, spremno za dan.",
-        },
-        {
-          accent: "Casual edit",
-          cta: "Pogledaj casual",
-          href: "/proizvodi?collection=after-dark",
-          kicker: "Trenerke / majice / urbana obuca",
-          title: "Udobnost koja i dalje izgleda uredno.",
-        },
-      ],
-    },
     proof: {
       eyebrow: "Kupovina bez dileme",
       title: "Manje pitanja pre porudzbine, vise sigurnosti posle nje.",
@@ -646,37 +615,6 @@ export const HOME_CONVERSION_COPY = {
     },
   },
   en: {
-    featured: {
-      eyebrow: "Most wanted picks",
-      title: "Pieces that shorten the decision.",
-      description:
-        "Three clear ways into the catalog: warm, light, and everyday. Each one opens a filtered edit.",
-      primaryCta: "Open catalog",
-      secondaryCta: "Ask about sizing",
-      cards: [
-        {
-          accent: "Winter layers",
-          cta: "Shop winter",
-          href: "/proizvodi?collection=alpska-kapsula",
-          kicker: "Coats / knitwear / footwear",
-          title: "Warmth without a heavy look.",
-        },
-        {
-          accent: "Summer rhythm",
-          cta: "Shop summer",
-          href: "/proizvodi?collection=sunset-resort",
-          kicker: "Linen / light cuts / sneakers",
-          title: "Clean, breathable, ready for the day.",
-        },
-        {
-          accent: "Casual edit",
-          cta: "Shop casual",
-          href: "/proizvodi?collection=after-dark",
-          kicker: "Tracksuits / tees / urban footwear",
-          title: "Comfort that still looks considered.",
-        },
-      ],
-    },
     proof: {
       eyebrow: "Shopping without doubt",
       title: "Fewer questions before checkout, more confidence after it.",

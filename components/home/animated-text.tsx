@@ -25,6 +25,11 @@ type StoryCtaProps = {
 
 const TITLE_BURST_DURATION = 1.8;
 const TITLE_CYCLE_DURATION = 7.2;
+const STORY_PANEL_EXIT_DURATION = 0.62;
+const STORY_PANEL_ENTRY_DURATION = 0.85;
+const STORY_PANEL_OFFSET = 150;
+const STORY_PANEL_ROTATION = 20;
+const STORY_PANEL_SCALE = 0.93;
 
 function StoryCta({ href, label, ariaLabel, variant }: StoryCtaProps) {
   const isPrimary = variant === "primary";
@@ -71,42 +76,40 @@ export function AnimatedText({
 
     const ctx = gsap.context(() => {
       if (isTransitioning) {
-        // Exit animation
         gsap.to(leftPanel, {
-          x: -120,
+          x: -STORY_PANEL_OFFSET,
           opacity: 0,
-          rotateY: 15,
-          scale: 0.95,
-          duration: 0.45,
+          rotateY: STORY_PANEL_ROTATION,
+          scale: STORY_PANEL_SCALE,
+          duration: STORY_PANEL_EXIT_DURATION,
           ease: "power2.inOut",
           overwrite: "auto",
         });
 
         gsap.to(rightPanel, {
-          x: 120,
+          x: STORY_PANEL_OFFSET,
           opacity: 0,
-          rotateY: -15,
-          scale: 0.95,
-          duration: 0.45,
+          rotateY: -STORY_PANEL_ROTATION,
+          scale: STORY_PANEL_SCALE,
+          duration: STORY_PANEL_EXIT_DURATION,
           ease: "power2.inOut",
           overwrite: "auto",
         });
       } else {
-        // Entry animation
         gsap.fromTo(
           leftPanel,
           {
-            x: -150,
+            x: -STORY_PANEL_OFFSET,
             opacity: 0,
-            rotateY: 20,
-            scale: 0.93,
+            rotateY: STORY_PANEL_ROTATION,
+            scale: STORY_PANEL_SCALE,
           },
           {
             x: 0,
             opacity: 1,
             rotateY: 0,
             scale: 1,
-            duration: 0.85,
+            duration: STORY_PANEL_ENTRY_DURATION,
             ease: "power4.out",
             overwrite: "auto",
           }
@@ -115,17 +118,17 @@ export function AnimatedText({
         gsap.fromTo(
           rightPanel,
           {
-            x: 150,
+            x: STORY_PANEL_OFFSET,
             opacity: 0,
-            rotateY: -20,
-            scale: 0.93,
+            rotateY: -STORY_PANEL_ROTATION,
+            scale: STORY_PANEL_SCALE,
           },
           {
             x: 0,
             opacity: 1,
             rotateY: 0,
             scale: 1,
-            duration: 0.85,
+            duration: STORY_PANEL_ENTRY_DURATION,
             ease: "power4.out",
             overwrite: "auto",
             delay: 0.08,

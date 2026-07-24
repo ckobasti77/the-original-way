@@ -14,6 +14,8 @@ const productArgs = {
   imageStorageIds: v.array(v.id("_storage")),
   externalImageUrls: v.array(v.string()),
   brandId: v.optional(v.id("brands")),
+  isRecommended: v.optional(v.boolean()),
+  recommendationOrder: v.optional(v.number()),
 };
 
 function slugify(value: string) {
@@ -69,6 +71,70 @@ export const list = query({
   },
 });
 
+export const listRecommended = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const requestedLimit = Math.floor(args.limit ?? 12);
+    const limit = Math.min(Math.max(requestedLimit, 1), 24);
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_is_recommended_and_recommendation_order", (q) =>
+        q.eq("isRecommended", true),
+      )
+      .order("asc")
+      .collect();
+    const categories = await ctx.db.query("categories").take(100);
+    const categoriesBySlug = new Map(
+      categories.map((category) => [category.slug, category]),
+    );
+
+    const enrichedProducts = await Promise.all(
+      products.map(async (product) => {
+        const storedUrls = await Promise.all(
+          product.imageStorageIds.map((storageId) => ctx.storage.getUrl(storageId)),
+        );
+
+        let brand = null;
+        if (product.brandId) {
+          const brandRecord = await ctx.db.get(product.brandId);
+          if (brandRecord) {
+            brand = {
+              _id: brandRecord._id,
+              name: brandRecord.name,
+            };
+          }
+        }
+
+        return {
+          ...product,
+          slug: `${slugify(product.name)}-${product._id.slice(-6)}`,
+          imageUrls: [
+            ...storedUrls.filter((url): url is string => Boolean(url)),
+            ...product.externalImageUrls,
+          ],
+          brand,
+          category: product.categorySlug
+            ? categoriesBySlug.get(product.categorySlug) ?? null
+            : null,
+        };
+      }),
+    );
+
+    return enrichedProducts
+      .sort((a, b) => {
+        const orderA = a.recommendationOrder ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.recommendationOrder ?? Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return b.createdAt - a.createdAt;
+      })
+      .slice(0, limit);
+  },
+});
+
 export const upsert = mutation({
   args: {
     id: v.optional(v.id("products")),
@@ -81,6 +147,10 @@ export const upsert = mutation({
     if (id) {
       await ctx.db.patch(id, {
         ...product,
+        isRecommended: product.isRecommended || undefined,
+        recommendationOrder: product.isRecommended
+          ? product.recommendationOrder
+          : undefined,
         updatedAt: now,
       });
       return id;
@@ -88,6 +158,10 @@ export const upsert = mutation({
 
     return await ctx.db.insert("products", {
       ...product,
+      isRecommended: product.isRecommended || undefined,
+      recommendationOrder: product.isRecommended
+        ? product.recommendationOrder
+        : undefined,
       createdAt: now,
       updatedAt: now,
     });

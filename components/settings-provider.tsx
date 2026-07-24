@@ -9,9 +9,16 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import {
+  getLocaleFromPathname,
+  localizeHref,
+  type StoreLocale,
+} from "@/lib/storefront-i18n";
 
 export type Theme = "light" | "dark";
-export type Language = "sr" | "en";
+export type Language = StoreLocale;
 
 type SettingsContextValue = {
   language: Language;
@@ -23,30 +30,22 @@ type SettingsContextValue = {
 };
 
 type SettingsSnapshot = {
-  language: Language;
   theme: Theme;
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 const STORAGE_KEYS = {
-  language: "tow-language",
   theme: "tow-theme",
 } as const;
 
-const DEFAULT_LANGUAGE: Language = "sr";
 const DEFAULT_THEME: Theme = "light";
 const DEFAULT_SNAPSHOT: SettingsSnapshot = {
-  language: DEFAULT_LANGUAGE,
   theme: DEFAULT_THEME,
 };
 
 function isTheme(value: string | null): value is Theme {
   return value === "light" || value === "dark";
-}
-
-function isLanguage(value: string | null): value is Language {
-  return value === "sr" || value === "en";
 }
 
 function readStoredSnapshot(): SettingsSnapshot {
@@ -55,10 +54,8 @@ function readStoredSnapshot(): SettingsSnapshot {
   }
 
   const storedTheme = window.localStorage.getItem(STORAGE_KEYS.theme);
-  const storedLanguage = window.localStorage.getItem(STORAGE_KEYS.language);
 
   return {
-    language: isLanguage(storedLanguage) ? storedLanguage : DEFAULT_LANGUAGE,
     theme: isTheme(storedTheme) ? storedTheme : DEFAULT_THEME,
   };
 }
@@ -69,7 +66,6 @@ function writeSnapshot(nextSnapshot: SettingsSnapshot) {
   }
 
   window.localStorage.setItem(STORAGE_KEYS.theme, nextSnapshot.theme);
-  window.localStorage.setItem(STORAGE_KEYS.language, nextSnapshot.language);
 }
 
 export function SettingsProvider({
@@ -77,6 +73,10 @@ export function SettingsProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const language = getLocaleFromPathname(pathname);
   const [snapshot, setSnapshot] = useState<SettingsSnapshot>(DEFAULT_SNAPSHOT);
 
   useEffect(() => {
@@ -94,11 +94,11 @@ export function SettingsProvider({
     if (root.dataset.theme !== snapshot.theme) {
       root.dataset.theme = snapshot.theme;
     }
-    const targetLang = snapshot.language === "sr" ? "sr-Latn-RS" : "en";
+    const targetLang = language === "sr" ? "sr-Latn-RS" : "en";
     if (root.lang !== targetLang) {
       root.lang = targetLang;
     }
-  }, [snapshot.language, snapshot.theme]);
+  }, [language, snapshot.theme]);
 
   const stateRef = useRef(snapshot);
   useEffect(() => {
@@ -113,8 +113,7 @@ export function SettingsProvider({
     const handleStorage = (event: StorageEvent) => {
       if (
         event.key === null ||
-        event.key === STORAGE_KEYS.theme ||
-        event.key === STORAGE_KEYS.language
+        event.key === STORAGE_KEYS.theme
       ) {
         setSnapshot(readStoredSnapshot());
       }
@@ -127,18 +126,19 @@ export function SettingsProvider({
     };
   }, []);
 
-  const setLanguage = useCallback((nextLanguage: Language) => {
-    const nextSnapshot: SettingsSnapshot = {
-      language: nextLanguage,
-      theme: stateRef.current.theme,
-    };
-    writeSnapshot(nextSnapshot);
-    setSnapshot(nextSnapshot);
-  }, []);
+  const setLanguage = useCallback(
+    (nextLanguage: Language) => {
+      document.cookie = `tow-locale=${nextLanguage}; path=/; max-age=31536000; samesite=lax`;
+      const query = searchParams.toString();
+      router.push(
+        `${localizeHref(pathname, nextLanguage)}${query ? `?${query}` : ""}`,
+      );
+    },
+    [pathname, router, searchParams],
+  );
 
   const setTheme = useCallback((nextTheme: Theme) => {
     const nextSnapshot: SettingsSnapshot = {
-      language: stateRef.current.language,
       theme: nextTheme,
     };
     writeSnapshot(nextSnapshot);
@@ -146,17 +146,11 @@ export function SettingsProvider({
   }, []);
 
   const toggleLanguage = useCallback(() => {
-    const nextSnapshot: SettingsSnapshot = {
-      language: stateRef.current.language === "sr" ? "en" : "sr",
-      theme: stateRef.current.theme,
-    };
-    writeSnapshot(nextSnapshot);
-    setSnapshot(nextSnapshot);
-  }, []);
+    setLanguage(language === "sr" ? "en" : "sr");
+  }, [language, setLanguage]);
 
   const toggleTheme = useCallback(() => {
     const nextSnapshot: SettingsSnapshot = {
-      language: stateRef.current.language,
       theme: stateRef.current.theme === "light" ? "dark" : "light",
     };
     writeSnapshot(nextSnapshot);
@@ -165,14 +159,14 @@ export function SettingsProvider({
 
   const value = useMemo<SettingsContextValue>(
     () => ({
-      language: snapshot.language,
+      language,
       setLanguage,
       theme: snapshot.theme,
       setTheme,
       toggleLanguage,
       toggleTheme,
     }),
-    [snapshot.language, snapshot.theme, setLanguage, setTheme, toggleLanguage, toggleTheme],
+    [language, snapshot.theme, setLanguage, setTheme, toggleLanguage, toggleTheme],
   );
 
   return (

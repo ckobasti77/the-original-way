@@ -35,6 +35,7 @@ const STEP_TRANSITION_MS = 1000;
 const SCROLL_EPSILON = 2;
 const TITLE_BURST_DURATION = 1.8;
 const TITLE_CYCLE_DURATION = 7.2;
+const STORY_EXIT_DURATION_SECONDS = 0.62;
 
 const INTRO_COPY = {
   sr: {
@@ -85,12 +86,7 @@ function useReducedMotionPreference() {
 }
 
 export function HeroScrollytelling() {
-  const { language, theme, setTheme } = useSettings();
-
-  const themeRef = useRef(theme);
-  useEffect(() => {
-    themeRef.current = theme;
-  }, [theme]);
+  const { language } = useSettings();
 
   const introCopy = INTRO_COPY[language];
   const prefersReducedMotion = useReducedMotionPreference();
@@ -202,20 +198,14 @@ export function HeroScrollytelling() {
       isAnimatingRef.current = true;
       setIsTransitioning(true);
 
-      const themes = ["light", "dark", "light", "dark"] as const;
-      const targetTheme = themes[nextStopIndex] ?? "light";
-      if (themeRef.current !== targetTheme) {
-        setTheme(targetTheme);
-      }
-
-      const root = document.documentElement;
-      if (root.getAttribute("data-stop-index") !== String(nextStopIndex)) {
-        root.setAttribute("data-stop-index", String(nextStopIndex));
-      }
+      const section = sectionRef.current;
+      section?.setAttribute("data-stop-index", String(nextStopIndex));
+      section?.setAttribute(
+        "data-story-tone",
+        nextStopIndex === 0 || nextStopIndex === 2 ? "light" : "dark",
+      );
       const chapterId = nextStopIndex === 0 ? "intro" : CHAPTERS[nextStopIndex - 1]?.id || "intro";
-      if (root.getAttribute("data-chapter") !== chapterId) {
-        root.setAttribute("data-chapter", chapterId);
-      }
+      section?.setAttribute("data-chapter", chapterId);
 
       window.dispatchEvent(
         new CustomEvent("tow-transition-start", {
@@ -271,7 +261,6 @@ export function HeroScrollytelling() {
       lockInput,
       maxStopIndex,
       prefersReducedMotion,
-      setTheme,
       setStopInstantly,
     ],
   );
@@ -344,21 +333,15 @@ export function HeroScrollytelling() {
     if (isTransitioning) {
       return;
     }
-    const themes = ["light", "dark", "light", "dark"] as const;
-    const targetTheme = themes[stopIndex] ?? "light";
-    if (themeRef.current !== targetTheme) {
-      setTheme(targetTheme);
-    }
-
-    const root = document.documentElement;
-    if (root.getAttribute("data-stop-index") !== String(stopIndex)) {
-      root.setAttribute("data-stop-index", String(stopIndex));
-    }
+    const section = sectionRef.current;
+    section?.setAttribute("data-stop-index", String(stopIndex));
+    section?.setAttribute(
+      "data-story-tone",
+      stopIndex === 0 || stopIndex === 2 ? "light" : "dark",
+    );
     const chapterId = stopIndex === 0 ? "intro" : CHAPTERS[stopIndex - 1]?.id || "intro";
-    if (root.getAttribute("data-chapter") !== chapterId) {
-      root.setAttribute("data-chapter", chapterId);
-    }
-  }, [stopIndex, setTheme, isTransitioning]);
+    section?.setAttribute("data-chapter", chapterId);
+  }, [stopIndex, isTransitioning]);
 
 
 
@@ -671,69 +654,90 @@ export function HeroScrollytelling() {
       const tl = gsap.timeline({
         delay: 0.15,
       });
-
-      // 1. Navbar fade/slide down
-      tl.fromTo(
-        "header",
-        { y: -80, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1.0, ease: "power4.out" }
+      const header = document.querySelector("header");
+      const headerItems = header?.querySelectorAll(
+        "nav a, button, .nav-text",
       );
+      const checkpointButtons =
+        sectionElement.querySelectorAll(".checkpoint-button");
 
-      // Stagger nav links & toggles
-      tl.fromTo(
-        "header nav a, header button, header .nav-text",
-        { y: -15, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, stagger: 0.04, ease: "power3.out" },
-        "-=0.7"
-      );
+      if (header) {
+        tl.fromTo(
+          header,
+          { y: -80, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 1.0,
+            ease: "power4.out",
+            clearProps: "transform,opacity",
+          }
+        );
+      }
+
+      if (headerItems && headerItems.length > 0) {
+        tl.fromTo(
+          headerItems,
+          { y: -15, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.8,
+            stagger: 0.04,
+            ease: "power3.out",
+            clearProps: "transform,opacity",
+          },
+          "-=0.7"
+        );
+      }
 
       // 2. Intro grid layout columns
-      const leftCol = sectionElement.querySelector(".lg\\:grid > div:first-child");
-      const rightCol = sectionElement.querySelector(".lg\\:grid > div:last-child");
+      const leftCol = sectionElement.querySelector(".story-intro-left");
+      const rightCol = sectionElement.querySelector(".story-intro-right");
 
       if (leftCol && rightCol) {
         tl.fromTo(
           leftCol,
-          { x: -80, opacity: 0, rotateY: 10 },
+          { x: -120, opacity: 0, rotateY: 12 },
           { x: 0, opacity: 1, rotateY: 0, duration: 1.2, ease: "power4.out" },
           "-=0.55"
         );
 
         tl.fromTo(
           rightCol,
-          { x: 80, opacity: 0, rotateY: -10 },
+          { x: 120, opacity: 0, rotateY: -12 },
           { x: 0, opacity: 1, rotateY: 0, duration: 1.2, ease: "power4.out" },
           "-=1.1"
         );
 
-        // Stagger inner canvas & CTA buttons
-        const innerInteractive = sectionElement.querySelectorAll(".lg\\:grid img.hero-image, .lg\\:grid canvas, .lg\\:grid .cta-button");
+        const innerInteractive = sectionElement.querySelectorAll(
+          ".lg\\:grid img.hero-image, .lg\\:grid canvas, .lg\\:grid .cta-button"
+        );
+
+        if (innerInteractive.length > 0) {
+          tl.fromTo(
+            innerInteractive,
+            { scale: 0.75, opacity: 0 },
+            {
+              scale: 1,
+              opacity: 1,
+              duration: 1.0,
+              stagger: 0.08,
+              ease: "back.out(1.4)",
+            },
+            "-=0.75"
+          );
+        }
+      }
+
+      if (checkpointButtons.length > 0) {
         tl.fromTo(
-          innerInteractive,
-          { scale: 0.75, opacity: 0 },
-          { scale: 1, opacity: 1, duration: 1.0, stagger: 0.08, ease: "back.out(1.4)" },
+          checkpointButtons,
+          { scale: 0, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.7)" },
           "-=0.75"
         );
       }
-
-      // Mobile layout cards
-      const mobileCards = sectionElement.querySelectorAll(".lg\\:hidden > div");
-      if (mobileCards.length > 0) {
-        tl.fromTo(
-          mobileCards,
-          { y: 60, opacity: 0, scale: 0.9, rotateX: 8 },
-          { y: 0, opacity: 1, scale: 1, rotateX: 0, duration: 1.1, stagger: 0.15, ease: "power4.out" },
-          "-=0.9"
-        );
-      }
-
-      // 3. Stagger checkpoint control buttons at the bottom
-      tl.fromTo(
-        ".checkpoint-button",
-        { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.7)" },
-        "-=0.75"
-      );
     }, sectionRef);
 
     return () => ctx.revert();
@@ -747,36 +751,27 @@ export function HeroScrollytelling() {
     if (!sectionElement) return;
 
     const ctx = gsap.context(() => {
-      const leftCol = sectionElement.querySelector(".lg\\:grid > div:first-child");
-      const rightCol = sectionElement.querySelector(".lg\\:grid > div:last-child");
-      const mobileCards = sectionElement.querySelectorAll(".lg\\:hidden > div");
+      const leftItems = sectionElement.querySelectorAll(".story-intro-left");
+      const rightItems = sectionElement.querySelectorAll(".story-intro-right");
 
-      if (leftCol && rightCol) {
-        gsap.to(leftCol, {
+      if (leftItems.length > 0) {
+        gsap.to(leftItems, {
           x: -120,
           opacity: 0,
-          rotateY: 15,
-          scale: 0.95,
-          duration: 0.45,
-          ease: "power2.inOut",
-        });
-        gsap.to(rightCol, {
-          x: 120,
-          opacity: 0,
-          rotateY: -15,
-          scale: 0.95,
-          duration: 0.45,
+          rotateY: 12,
+          scale: 0.94,
+          duration: STORY_EXIT_DURATION_SECONDS,
           ease: "power2.inOut",
         });
       }
 
-      if (mobileCards.length > 0) {
-        gsap.to(mobileCards, {
-          y: 40,
+      if (rightItems.length > 0) {
+        gsap.to(rightItems, {
+          x: 120,
           opacity: 0,
-          scale: 0.93,
-          duration: 0.45,
-          stagger: 0.05,
+          rotateY: -12,
+          scale: 0.94,
+          duration: STORY_EXIT_DURATION_SECONDS,
           ease: "power2.inOut",
         });
       }
@@ -789,10 +784,12 @@ export function HeroScrollytelling() {
     <section
       ref={sectionRef}
       data-tow-scrollytelling="true"
+      data-stop-index={stopIndex}
+      data-story-tone={stopIndex === 0 || stopIndex === 2 ? "light" : "dark"}
       className={`relative ${stopIndex === maxStopIndex ? "" : "touch-none"}`}
       style={{ height: `calc(${STOP_FRAMES.length} * 100vh)` }}
     >
-      <div className="sticky top-0 isolate h-screen w-screen overflow-hidden bg-[var(--page-bg)]">
+      <div className="story-stage sticky top-0 isolate h-screen w-screen overflow-hidden">
         <div className="absolute inset-0">
           <FramePlayer
             ref={framePlayerRef}
@@ -800,7 +797,8 @@ export function HeroScrollytelling() {
             initialFrame={INTRO_START_FRAME}
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="cinematic-scrim absolute inset-0" />
+          <div className="story-tone-scrim story-tone-scrim-light absolute inset-0" />
+          <div className="story-tone-scrim story-tone-scrim-dark absolute inset-0" />
           <div className="absolute inset-x-0 bottom-0 h-[30vh] bg-[linear-gradient(180deg,rgba(4,9,17,0)_0%,rgba(4,9,17,0.52)_100%)]" />
         </div>
 
@@ -816,17 +814,11 @@ export function HeroScrollytelling() {
                 />
               </div>
             ) : (
-              <div
-                className={`flex flex-1 transition-all duration-400 ease-[cubic-bezier(0.3,0,0.2,1)] ${
-                  isTransitioning
-                    ? "scale-[0.93] translate-y-2 opacity-0 blur-[3px]"
-                    : "scale-100 translate-y-0 opacity-100 blur-0"
-                }`}
-              >
+              <div className="flex flex-1">
                 {/* Desktop Layout (>= 1024px) - Original layout restored */}
                 <div className="hidden lg:grid grid-cols-2 gap-x-12 gap-y-12 w-full flex-1 min-h-0 items-stretch py-6">
                   {/* Left Column: Title top, Sneaker Model + CTA bottom */}
-                  <div className="flex flex-col justify-between items-start h-full md:pl-[35px]">
+                  <div className="story-intro-left flex flex-col justify-between items-start h-full md:pl-[35px]">
                     {/* Top-Left: Title */}
                     <div className="story-copy-panel relative max-w-[24rem] w-fit">
                       <p className="story-eyebrow reveal-up text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-[var(--text-secondary)]">
@@ -890,7 +882,7 @@ export function HeroScrollytelling() {
                   </div>
 
                   {/* Right Column: Tech Fleece Model top + CTA, Short Title bottom */}
-                  <div className="flex flex-col justify-between items-end h-full text-right md:pr-[35px]">
+                  <div className="story-intro-right flex flex-col justify-between items-end h-full text-right md:pr-[35px]">
                     {/* Top-Right: Tech Fleece Model + CTA */}
                     <div className="flex flex-col items-center w-full md:-translate-y-8 md:translate-x-[170px]">
                       {/* <ModelViewer
@@ -961,7 +953,7 @@ export function HeroScrollytelling() {
                 {/* Mobile/Tablet Layout (< 1024px) - Centered Liquid Glass Cards */}
                 <div className="grid lg:hidden grid-cols-1 gap-y-16 w-full flex-1 min-h-0 items-stretch py-2">
                   {/* Left Card Column */}
-                  <div className="flex flex-col justify-center items-start h-full w-full">
+                  <div className="story-intro-left flex flex-col justify-center items-start h-full w-full">
                     <LiquidGlassCard active={stopIndex === 0 && !isTransitioning} className="w-full max-w-[280px] sm:max-w-[320px] flex flex-col justify-center items-center h-fit p-4 sm:p-6">
                       {/* Top-Left: Title */}
                       <div className="story-copy-panel relative max-w-[20rem] sm:max-w-[22rem] w-fit mb-4 self-start">
@@ -1027,7 +1019,7 @@ export function HeroScrollytelling() {
                   </div>
 
                   {/* Right Card Column */}
-                  <div className="flex flex-col justify-center items-end h-full w-full">
+                  <div className="story-intro-right flex flex-col justify-center items-end h-full w-full">
                     <LiquidGlassCard active={stopIndex === 0 && !isTransitioning} className="w-full max-w-[280px] sm:max-w-[320px] flex flex-col justify-center items-center h-fit p-4 sm:p-6">
                       {/* Top-Right: Tech Fleece Model + CTA */}
                       <div className="flex flex-col items-center w-full mt-2 mb-4">

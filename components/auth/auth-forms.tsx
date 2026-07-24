@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { useSettings } from "@/components/settings-provider";
+import { localizeHref } from "@/lib/storefront-i18n";
 import type { InputHTMLAttributes, ReactNode } from "react";
 
 import {
@@ -110,6 +112,7 @@ function AuthCard({ children }: { children: ReactNode }) {
 
 export function LoginForm() {
   const { language } = useSettings();
+  const searchParams = useSearchParams();
   const copy = AUTH_COPY[language];
   const [state, action, pending] = useActionState(login, {});
 
@@ -118,6 +121,7 @@ export function LoginForm() {
       <AuthCard>
         <form action={action} className="space-y-4">
           <input type="hidden" name="language" value={language} />
+          <input type="hidden" name="next" value={searchParams.get("next") ?? ""} />
           <AuthField
             htmlFor="login-email"
             label={copy.fields.email[language]}
@@ -158,10 +162,10 @@ export function LoginForm() {
           />
 
           <div className="flex flex-col gap-3 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-            <Link href="/registracija" className={LINK_CLASS}>
+            <Link href={localizeHref("/registracija", language)} className={LINK_CLASS}>
               {copy.links.register[language]}
             </Link>
-            <Link href="/prijava/zaboravljena-sifra" className={LINK_CLASS}>
+            <Link href={localizeHref("/prijava/zaboravljena-sifra", language)} className={LINK_CLASS}>
               {copy.links.forgotPassword[language]}
             </Link>
           </div>

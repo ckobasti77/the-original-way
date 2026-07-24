@@ -2,9 +2,13 @@
 
 import { FormEvent, useState } from "react";
 
+import { useSettings } from "@/components/settings-provider";
+import { STORE_COPY } from "@/lib/storefront-i18n";
 import { CONTACT_EMAIL } from "@/lib/site-contact";
 
 export function ContactForm() {
+  const { language } = useSettings();
+  const copy = STORE_COPY[language].contact.form;
   const [status, setStatus] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -29,24 +33,24 @@ export function ContactForm() {
       ].join("\n"),
     );
 
-    setStatus("Otvaramo email klijent sa pripremljenom porukom.");
+    setStatus(copy.opened);
     window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-4 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-strong)] p-4 shadow-[0_26px_70px_rgba(var(--shadow-rgb),0.12)] backdrop-blur-2xl sm:p-5"
+      className="premium-panel grid gap-4 p-5 md:p-7"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-1.5 text-sm font-bold text-[var(--text-secondary)]">
-          Ime
+          {copy.name}
           <input
             name="name"
             required
             autoComplete="name"
-            className="min-h-11 rounded-md border border-[var(--border-soft)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)]"
-            placeholder="Vase ime"
+            className="store-input"
+            placeholder={copy.namePlaceholder}
           />
         </label>
         <label className="grid gap-1.5 text-sm font-bold text-[var(--text-secondary)]">
@@ -56,42 +60,42 @@ export function ContactForm() {
             required
             type="email"
             autoComplete="email"
-            className="min-h-11 rounded-md border border-[var(--border-soft)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)]"
+            className="store-input"
             placeholder="ime@email.com"
           />
         </label>
       </div>
 
       <label className="grid gap-1.5 text-sm font-bold text-[var(--text-secondary)]">
-        Telefon
+        {copy.phone}
         <input
           name="phone"
           autoComplete="tel"
-          className="min-h-11 rounded-md border border-[var(--border-soft)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)]"
+          className="store-input"
           placeholder="+381"
         />
       </label>
 
       <label className="grid gap-1.5 text-sm font-bold text-[var(--text-secondary)]">
-        Poruka
+        {copy.message}
         <textarea
           name="message"
           required
           rows={6}
-          className="min-h-36 resize-y rounded-md border border-[var(--border-soft)] bg-[var(--surface)] px-3 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)]"
-          placeholder="Napisite sta trazite, velicinu, brend ili pitanje za porudzbinu."
+          className="store-input min-h-36 resize-y"
+          placeholder={copy.messagePlaceholder}
         />
       </label>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold leading-5 text-[var(--text-muted)]" aria-live="polite">
-          {status || "Odgovaramo direktno na email ili poziv."}
+          {status || copy.idle}
         </p>
         <button
           type="submit"
-          className="tow-on-primary inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--text-primary)] px-5 text-xs font-bold uppercase tracking-[0.16em] hover:opacity-90"
+          className="store-button-primary"
         >
-          Posalji upit
+          {copy.submit}
         </button>
       </div>
     </form>

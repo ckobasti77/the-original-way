@@ -44,6 +44,8 @@ export type ShopProduct = {
   collectionSlugs: string[];
   tags: string[];
   createdAt: number;
+  isRecommended?: boolean;
+  recommendationOrder?: number;
   isDemo?: boolean;
 };
 

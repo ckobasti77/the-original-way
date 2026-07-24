@@ -10,13 +10,16 @@ import {
   productGenderLabels,
   productTypeLabels,
 } from "@/lib/shop-taxonomy";
+import { localizeHref, STORE_COPY, type StoreLocale } from "@/lib/storefront-i18n";
 
 export default async function ProductDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; locale?: string }>;
 }) {
-  const { slug } = await params;
+  const { slug, locale: routeLocale } = await params;
+  const locale: StoreLocale = routeLocale === "en" ? "en" : "sr";
+  const copy = STORE_COPY[locale].product;
   const { catalog, product } = await getShopProduct(slug);
 
   if (!product) {
@@ -35,14 +38,14 @@ export default async function ProductDetailPage({
   const gallery = product.imageUrls.length > 0 ? product.imageUrls : [""];
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-primary)]">
+    <main className="store-shell min-h-screen text-[var(--text-primary)]">
       <Navbar />
 
       <section className="border-b border-[var(--border-soft)] px-4 pb-10 pt-28 md:px-8 md:pb-14">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-            <Link href="/proizvodi" className="hover:text-[var(--text-primary)]">
-              Proizvodi
+            <Link href={localizeHref("/proizvodi", locale)} className="hover:text-[var(--text-primary)]">
+              {STORE_COPY[locale].common.products}
             </Link>
             <span>/</span>
             <span>{product.category?.name ?? productTypeLabels[product.type]}</span>
@@ -119,13 +122,13 @@ export default async function ProductDetailPage({
 
               <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs font-bold uppercase tracking-[0.13em] text-[var(--text-muted)]">
                 <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] px-2 py-3">
-                  Rezervacija
+                  {copy.reservation}
                 </div>
                 <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] px-2 py-3">
-                  Brza potvrda
+                  {copy.confirmation}
                 </div>
                 <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] px-2 py-3">
-                  Lokalna isporuka
+                  {copy.delivery}
                 </div>
               </div>
             </div>
@@ -138,15 +141,15 @@ export default async function ProductDetailPage({
           <div className="mb-5 flex items-end justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                Nastavi pregled
+                {copy.continue}
               </p>
-              <h2 className="mt-1 text-3xl font-semibold">Slicni proizvodi</h2>
+              <h2 className="mt-1 text-3xl font-semibold">{copy.similar}</h2>
             </div>
             <Link
-              href="/proizvodi"
+              href={localizeHref("/proizvodi", locale)}
               className="rounded-md border border-[var(--border-soft)] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]"
             >
-              Svi proizvodi
+              {copy.all}
             </Link>
           </div>
 

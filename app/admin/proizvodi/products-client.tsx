@@ -40,6 +40,8 @@ type ProductRecord = {
   externalImageUrls: string[];
   imageUrls: string[];
   brandId?: Id<"brands">;
+  isRecommended?: boolean;
+  recommendationOrder?: number;
   brand?: { _id: Id<"brands">; name: string } | null;
   category?: {
     _id: Id<"categories">;
@@ -70,6 +72,8 @@ type ProductForm = {
   imageStorageIds: Id<"_storage">[];
   externalImageUrls: string;
   brandId?: Id<"brands">;
+  isRecommended: boolean;
+  recommendationOrder: string;
 };
 
 const emptyForm: ProductForm = {
@@ -84,6 +88,8 @@ const emptyForm: ProductForm = {
   imageStorageIds: [],
   externalImageUrls: "",
   brandId: undefined,
+  isRecommended: false,
+  recommendationOrder: "",
 };
 
 export function ProductsClient({ convexEnabled }: { convexEnabled: boolean }) {
@@ -198,6 +204,10 @@ function ProductsConvex() {
 
     const costPrice = Number(form.costPrice);
     const salePrice = Number(form.salePrice);
+    const recommendationOrder =
+      form.isRecommended && form.recommendationOrder.trim()
+        ? Number(form.recommendationOrder)
+        : undefined;
 
     if (
       !form.name.trim() ||
@@ -206,6 +216,15 @@ function ProductsConvex() {
       !Number.isFinite(salePrice)
     ) {
       setMessage("Naziv, kategorija, nabavna cena i prodajna cena su obavezni.");
+      return;
+    }
+
+    if (
+      form.isRecommended &&
+      recommendationOrder !== undefined &&
+      !Number.isFinite(recommendationOrder)
+    ) {
+      setMessage("Redosled preporuke mora biti broj.");
       return;
     }
 
@@ -225,6 +244,8 @@ function ProductsConvex() {
         .map((url) => url.trim())
         .filter(Boolean),
       brandId: form.brandId || undefined,
+      isRecommended: form.isRecommended,
+      recommendationOrder,
     });
 
     setForm(emptyForm);
@@ -245,6 +266,11 @@ function ProductsConvex() {
       imageStorageIds: product.imageStorageIds,
       externalImageUrls: product.externalImageUrls.join(", "),
       brandId: product.brandId,
+      isRecommended: Boolean(product.isRecommended),
+      recommendationOrder:
+        product.recommendationOrder === undefined
+          ? ""
+          : String(product.recommendationOrder),
     });
     setMessage("");
   }
@@ -385,6 +411,46 @@ function ProductsConvex() {
               </select>
             </FieldLabel>
 
+            <div className="rounded-lg border border-black/10 bg-[#f7f8f4] p-3">
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-bold text-black/75">
+                <input
+                  type="checkbox"
+                  checked={form.isRecommended}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      isRecommended: event.target.checked,
+                    }))
+                  }
+                  className="mt-0.5 h-4 w-4 accent-[#276c56]"
+                />
+                <span>
+                  <span className="block">Preporuceno / prikazi u home carouselu</span>
+                  <span className="mt-1 block text-xs font-normal text-black/50">
+                    Oznaceni proizvodi se prikazuju u 3D carousel sekciji.
+                  </span>
+                </span>
+              </label>
+
+              <div className="mt-3">
+                <FieldLabel label="Redosled u carouselu">
+                  <input
+                    value={form.recommendationOrder}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        recommendationOrder: event.target.value,
+                      }))
+                    }
+                    inputMode="numeric"
+                    className={fieldClass}
+                    placeholder="1"
+                    disabled={!form.isRecommended}
+                  />
+                </FieldLabel>
+              </div>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <FieldLabel label="Nabavna cena">
                 <input
@@ -518,6 +584,7 @@ function ProductsConvex() {
                         <th className="px-4 py-3">Proizvod</th>
                         <th className="px-4 py-3">Tip / pol</th>
                         <th className="px-4 py-3">Cene</th>
+                        <th className="px-4 py-3">Home</th>
                         <th className="px-4 py-3">Velicine</th>
                         <th className="px-4 py-3">Slike</th>
                         <th className="px-4 py-3">Akcije</th>
@@ -559,6 +626,18 @@ function ProductsConvex() {
                             <p className="text-xs text-black/50">
                               Nabavna: {formatCurrency(product.costPrice)}
                             </p>
+                          </td>
+                          <td className="px-4 py-4">
+                            {product.isRecommended ? (
+                              <span className="rounded bg-[#e7f4ee] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#1f5946]">
+                                Preporuceno
+                                {product.recommendationOrder !== undefined
+                                  ? ` #${product.recommendationOrder}`
+                                  : ""}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-black/35">-</span>
+                            )}
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex max-w-xs flex-wrap gap-1">
@@ -633,11 +712,20 @@ function ProductsConvex() {
                         </span></span>
                       </div>
 
-                      {product.category ? (
-                        <p className="mt-2 rounded-md bg-[#edf2ed] px-2 py-1 text-xs font-bold text-[#276c56]">
-                          {product.category.name}
-                        </p>
-                      ) : null}
+                        {product.category ? (
+                          <p className="mt-2 rounded-md bg-[#edf2ed] px-2 py-1 text-xs font-bold text-[#276c56]">
+                            {product.category.name}
+                          </p>
+                        ) : null}
+
+                        {product.isRecommended ? (
+                          <p className="mt-2 rounded-md bg-[#e7f4ee] px-2 py-1 text-xs font-bold text-[#1f5946]">
+                            Home carousel
+                            {product.recommendationOrder !== undefined
+                              ? ` #${product.recommendationOrder}`
+                              : ""}
+                          </p>
+                        ) : null}
 
                       {/* Pricing */}
                       <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">

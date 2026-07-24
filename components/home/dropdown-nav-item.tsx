@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { Language } from "@/components/settings-provider";
+import { localizeHref } from "@/lib/storefront-i18n";
 
 import type { NavLinkItem } from "./content";
 
@@ -16,7 +17,7 @@ export function DropdownNavItem({
   return (
     <div className="group relative">
       <Link
-        href={link.href}
+        href={localizeHref(link.href, language)}
         prefetch={false}
         className="nav-text inline-flex min-h-10 items-center gap-1.5 px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
       >
@@ -39,7 +40,7 @@ export function DropdownNavItem({
             {link.items?.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={localizeHref(item.href, language)}
                 prefetch={false}
                 aria-label={item.ariaLabel[language]}
                 className="rounded-[1.1rem] border border-transparent px-4 py-3 transition hover:border-[var(--border-soft)] hover:bg-[rgba(var(--accent-rgb),0.06)] focus-visible:border-[var(--border-strong)] focus-visible:bg-[rgba(var(--accent-rgb),0.06)]"

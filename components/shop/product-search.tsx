@@ -5,7 +5,9 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 
+import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
+import { localizeHref } from "@/lib/storefront-i18n";
 import { sampleShopProducts } from "@/lib/shop-sample-data";
 import { formatShopPrice, slugify, type ShopProduct } from "@/lib/shop-taxonomy";
 
@@ -60,9 +62,12 @@ function normalizeSearchProduct(product: RawSearchProduct): SearchProduct {
   };
 }
 
-function getCatalogHref(query: string) {
+function getCatalogHref(query: string, language: "sr" | "en") {
   const normalized = query.trim();
-  return `/proizvodi${normalized ? `?q=${encodeURIComponent(normalized)}` : ""}`;
+  return localizeHref(
+    `/proizvodi${normalized ? `?q=${encodeURIComponent(normalized)}` : ""}`,
+    language,
+  );
 }
 
 function SearchResults({
@@ -74,20 +79,21 @@ function SearchResults({
   query: string;
   results: SearchProduct[];
 }) {
+  const { language } = useSettings();
   const normalizedQuery = query.trim();
 
   return (
     <div className="mt-3 grid gap-2">
       {normalizedQuery.length >= 2 && results.length === 0 ? (
         <p className="rounded-md border border-[var(--border-soft)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--text-muted)]">
-          Nema rezultata za &quot;{normalizedQuery}&quot;.
+          {language === "sr" ? "Nema rezultata za" : "No results for"} &quot;{normalizedQuery}&quot;.
         </p>
       ) : null}
 
       {results.map((product) => (
         <Link
           key={product.id}
-          href={`/proizvodi/${product.slug}`}
+          href={localizeHref(`/proizvodi/${product.slug}`, language)}
           onClick={onNavigate}
           className="grid grid-cols-[4rem_1fr_auto] items-center gap-3 rounded-md border border-[var(--border-soft)] bg-[var(--surface)] p-2 hover:border-[var(--border-strong)]"
         >
@@ -129,6 +135,7 @@ function SearchShell({
   products: SearchProduct[];
   variant: SearchVariant;
 }) {
+  const { language } = useSettings();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -190,7 +197,7 @@ function SearchShell({
   function navigateToCatalog() {
     setIsOpen(false);
     onNavigate?.();
-    router.push(getCatalogHref(query));
+    router.push(getCatalogHref(query, language));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -207,13 +214,14 @@ function SearchShell({
             onChange={(event) => setQuery(event.target.value)}
             type="search"
             className="min-h-11 rounded-md border border-[var(--border-soft)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
-            placeholder="Pretrazi proizvode"
+            placeholder={language === "sr" ? "Pretraži proizvode" : "Search products"}
+            aria-label={language === "sr" ? "Pretraga proizvoda" : "Product search"}
           />
           <button
             type="submit"
             className="tow-on-primary rounded-md bg-[var(--text-primary)] px-4 text-xs font-bold uppercase tracking-[0.14em]"
           >
-            Trazi
+            {language === "sr" ? "Traži" : "Search"}
           </button>
         </form>
         <SearchResults
@@ -229,8 +237,8 @@ function SearchShell({
     <div ref={containerRef} className="relative hidden lg:block">
       <button
         type="button"
-        aria-label="Pretraga"
-        title="Pretraga"
+        aria-label={language === "sr" ? "Pretraga" : "Search"}
+        title={language === "sr" ? "Pretraga" : "Search"}
         onClick={() => setIsOpen((current) => !current)}
         className={className}
       >
@@ -264,7 +272,8 @@ function SearchShell({
               onChange={(event) => setQuery(event.target.value)}
               type="search"
               className="min-h-11 rounded-md border border-[var(--border-soft)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
-              placeholder="Pretrazi proizvode"
+              placeholder={language === "sr" ? "Pretraži proizvode" : "Search products"}
+              aria-label={language === "sr" ? "Pretraga proizvoda" : "Product search"}
             />
             <button
               type="submit"

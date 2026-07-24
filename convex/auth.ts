@@ -15,6 +15,10 @@ import {
   sha256Hex,
   verifyPassword,
 } from "../lib/auth/crypto";
+import {
+  assertProfileOwnership,
+  normalizeCourierProfile,
+} from "../lib/storefront-profile";
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 30;
 const PASSWORD_RESET_TOKEN_DURATION_MS = 1000 * 60 * 60;
@@ -32,9 +36,13 @@ type PublicUser = {
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
   city?: string;
+  postalCode?: string;
   street?: string;
   houseNumber?: string;
+  addressLine2?: string;
+  deliveryNote?: string;
   profileCompletedAt?: number;
   lastLoginAt?: number;
   lastOrderAt?: number;
@@ -48,9 +56,13 @@ function toPublicUser(user: Doc<"users">): PublicUser {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
+    phone: user.phone,
     city: user.city,
+    postalCode: user.postalCode,
     street: user.street,
     houseNumber: user.houseNumber,
+    addressLine2: user.addressLine2,
+    deliveryNote: user.deliveryNote,
     profileCompletedAt: user.profileCompletedAt,
     lastLoginAt: user.lastLoginAt,
     lastOrderAt: user.lastOrderAt,
@@ -390,9 +402,13 @@ export const sessionByTokenHash = query({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        phone: user.phone,
         city: user.city,
+        postalCode: user.postalCode,
         street: user.street,
         houseNumber: user.houseNumber,
+        addressLine2: user.addressLine2,
+        deliveryNote: user.deliveryNote,
       },
       session: {
         expiresAt: session.expiresAt,
@@ -416,6 +432,51 @@ export const me = query({
     }
 
     return toPublicUser(user);
+  },
+});
+
+export const updateMyProfile = mutation({
+  args: {
+    firstName: v.string(),
+    lastName: v.string(),
+    phone: v.string(),
+    city: v.string(),
+    postalCode: v.string(),
+    street: v.string(),
+    houseNumber: v.string(),
+    addressLine2: v.optional(v.string()),
+    deliveryNote: v.optional(v.string()),
+  },
+  returns: v.object({ ok: v.boolean() }),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Morate biti prijavljeni.");
+    }
+
+    const user = await getUserByAuthSubject(ctx, identity.subject);
+    if (!user) {
+      throw new Error("Korisnički nalog nije pronađen.");
+    }
+    assertProfileOwnership(identity.subject, user.authSubject);
+    const profile = normalizeCourierProfile(args);
+
+    const now = Date.now();
+    await ctx.db.patch(user._id, {
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      phone: profile.phone,
+      city: profile.city,
+      postalCode: profile.postalCode,
+      street: profile.street,
+      houseNumber: profile.houseNumber,
+      addressLine2: profile.addressLine2,
+      deliveryNote: profile.deliveryNote,
+      profileCompletedAt: user.profileCompletedAt ?? now,
+      updatedAt: now,
+    });
+
+    return { ok: true };
   },
 });
 

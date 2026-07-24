@@ -24,9 +24,13 @@ export default defineSchema({
     emailNormalized: v.string(),
     passwordHash: v.string(),
     passwordSalt: v.string(),
+    phone: v.optional(v.string()),
     city: v.optional(v.string()),
+    postalCode: v.optional(v.string()),
     street: v.optional(v.string()),
     houseNumber: v.optional(v.string()),
+    addressLine2: v.optional(v.string()),
+    deliveryNote: v.optional(v.string()),
     profileCompletedAt: v.optional(v.number()),
     lastLoginAt: v.optional(v.number()),
     lastOrderAt: v.optional(v.number()),
@@ -71,13 +75,19 @@ export default defineSchema({
     imageStorageIds: v.array(v.id("_storage")),
     externalImageUrls: v.array(v.string()),
     brandId: v.optional(v.id("brands")),
+    isRecommended: v.optional(v.boolean()),
+    recommendationOrder: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_type", ["type"])
     .index("by_gender", ["gender"])
     .index("by_category_slug", ["categorySlug"])
-    .index("by_brand", ["brandId"]),
+    .index("by_brand", ["brandId"])
+    .index("by_is_recommended_and_recommendation_order", [
+      "isRecommended",
+      "recommendationOrder",
+    ]),
 
   categories: defineTable({
     name: v.string(),
@@ -114,9 +124,13 @@ export default defineSchema({
     firstName: v.string(),
     lastName: v.string(),
     email: v.optional(v.string()),
+    phone: v.optional(v.string()),
     city: v.string(),
+    postalCode: v.optional(v.string()),
     street: v.string(),
     houseNumber: v.string(),
+    addressLine2: v.optional(v.string()),
+    deliveryNote: v.optional(v.string()),
     source: orderSource,
     status: orderStatus,
     trackingNumber: v.optional(v.string()),

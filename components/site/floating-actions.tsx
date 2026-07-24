@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useSettings } from "@/components/settings-provider";
 import { ContactIcon } from "@/components/site/contact-icons";
 import { CONTACT_CHANNELS } from "@/lib/site-contact";
 
 export function FloatingActions() {
+  const { language } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -91,7 +93,7 @@ export function FloatingActions() {
               </span>
               <span className="min-w-0">
                 <span className="block text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  {channel.label}
+                  {language === "en" && channel.id === "phone" ? "Call" : channel.label}
                 </span>
                 <span className="mt-0.5 block truncate text-sm font-bold">
                   {channel.detail}
@@ -105,7 +107,11 @@ export function FloatingActions() {
           type="button"
           aria-controls="floating-contact-menu"
           aria-expanded={isOpen}
-          aria-label={isOpen ? "Zatvori kontakt opcije" : "Otvori kontakt opcije"}
+          aria-label={
+            isOpen
+              ? language === "sr" ? "Zatvori kontakt opcije" : "Close contact options"
+              : language === "sr" ? "Otvori kontakt opcije" : "Open contact options"
+          }
           onClick={() => setIsOpen((current) => !current)}
           className="tow-on-primary group grid h-[3.25rem] w-[3.25rem] place-items-center rounded-full border border-[var(--border-strong)] bg-[var(--text-primary)] shadow-[0_18px_42px_rgba(var(--shadow-rgb),0.26)] transition hover:-translate-y-0.5 sm:h-14 sm:w-14"
         >
@@ -118,7 +124,7 @@ export function FloatingActions() {
 
       <button
         type="button"
-        aria-label="Vrati se na vrh"
+        aria-label={language === "sr" ? "Vrati se na vrh" : "Back to top"}
         onClick={scrollToTop}
         className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-[65] grid h-12 w-12 place-items-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[0_18px_42px_rgba(var(--shadow-rgb),0.18)] backdrop-blur-2xl transition duration-300 hover:-translate-y-0.5 hover:border-[var(--border-strong)] sm:right-5 ${
           showScrollTop

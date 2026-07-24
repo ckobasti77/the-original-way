@@ -53,6 +53,8 @@ type RawProduct = {
   brandId?: string;
   brand?: { _id: string; name: string } | null;
   createdAt: number;
+  isRecommended?: boolean;
+  recommendationOrder?: number;
 };
 
 function normalizeCollectionSlug(name: string) {
@@ -127,6 +129,8 @@ function normalizeProduct(
       brand?.name ?? "",
     ].filter(Boolean),
     createdAt: product.createdAt,
+    isRecommended: product.isRecommended,
+    recommendationOrder: product.recommendationOrder,
   };
 }
 
