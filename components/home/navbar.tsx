@@ -329,6 +329,7 @@ export function Navbar() {
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const burgerButtonRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
 
   const toggleAccordion = (href: string) => {
     setExpandedSection((prev) => (prev === href ? null : href));
@@ -357,9 +358,7 @@ export function Navbar() {
       ).detail;
       const nextStop = detail?.to ?? 0;
       setStoryTone(nextStop === 0 || nextStop === 2 ? "light" : "dark");
-      if (typeof detail?.from === "number" && typeof detail.to === "number") {
-        setIsHidden(detail.to > detail.from);
-      }
+      setIsHidden(false);
       closeDrawer();
     };
 
@@ -400,15 +399,15 @@ export function Navbar() {
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
+    let accumulatedDelta = 0;
+    let lastDirection = 0;
     let ticking = false;
 
     const isInsideScrollytelling = () => {
       if (!isHomePath) {
         return false;
       }
-      if (typeof window !== "undefined" && window.scrollY < 50) {
-        return true;
-      }
+
       const storyElement = document.querySelector<HTMLElement>(
         "[data-tow-scrollytelling='true']",
       );
@@ -418,7 +417,9 @@ export function Navbar() {
       }
 
       const bounds = storyElement.getBoundingClientRect();
-      return bounds.top < 96 && bounds.bottom > 96;
+      const navbarHeight = headerRef.current?.offsetHeight ?? 80;
+
+      return bounds.top < navbarHeight && bounds.bottom > 0;
     };
 
     const updateNavbar = () => {
@@ -428,9 +429,9 @@ export function Navbar() {
       const inside = isInsideScrollytelling();
       setIsInsideStory(inside);
       if (drawerOpen || inside) {
-        if (drawerOpen) {
-          setIsHidden(false);
-        }
+        setIsHidden(false);
+        accumulatedDelta = 0;
+        lastDirection = 0;
         lastScrollY = currentScrollY;
         ticking = false;
         return;
@@ -438,10 +439,25 @@ export function Navbar() {
 
       if (currentScrollY <= 24) {
         setIsHidden(false);
-      } else if (delta > 8) {
-        setIsHidden(true);
-      } else if (delta < -8) {
-        setIsHidden(false);
+        accumulatedDelta = 0;
+        lastDirection = 0;
+      } else if (Math.abs(delta) >= 1) {
+        const direction = delta > 0 ? 1 : -1;
+
+        if (direction !== lastDirection) {
+          accumulatedDelta = delta;
+          lastDirection = direction;
+        } else {
+          accumulatedDelta += delta;
+        }
+
+        if (accumulatedDelta >= 16) {
+          setIsHidden(true);
+          accumulatedDelta = 0;
+        } else if (accumulatedDelta <= -16) {
+          setIsHidden(false);
+          accumulatedDelta = 0;
+        }
       }
 
       lastScrollY = currentScrollY;
@@ -511,8 +527,9 @@ export function Navbar() {
     };
   }, [drawerOpen]);
 
-  const headerStyle = isInsideStory
-    ? ({
+  const headerStyle = {
+    ...(isInsideStory
+      ? {
         "--navbar-bg":
           storyTone === "light"
             ? "rgba(248, 245, 239, 0.88)"
@@ -553,20 +570,24 @@ export function Navbar() {
         "--accent-strong": storyTone === "light" ? "#050506" : "#ffffff",
         "--accent-rgb": storyTone === "light" ? "25, 25, 28" : "251, 249, 245",
         "--shadow-rgb": storyTone === "light" ? "25, 25, 28" : "0, 0, 0",
-      } as React.CSSProperties)
-    : undefined;
+        }
+      : {}),
+    transform: isHidden
+      ? "translate3d(0, -115%, 0)"
+      : "translate3d(0, 0, 0)",
+    transition: isHidden
+      ? "transform 340ms cubic-bezier(0.4, 0, 1, 1)"
+      : "transform 480ms cubic-bezier(0.16, 1, 0.3, 1)",
+  } as React.CSSProperties;
 
   return (
     <>
-    <header 
+    <header
+      ref={headerRef}
       data-story-navbar={isInsideStory ? "true" : "false"}
       data-story-tone={isInsideStory ? storyTone : undefined}
       data-navbar-hidden={isHidden ? "true" : "false"}
-      className={`pointer-events-none fixed inset-x-0 top-0 z-30 flex transform-gpu flex-col will-change-transform motion-reduce:transition-none ${
-        isHidden 
-          ? "-translate-y-[115%] opacity-0 transition-[transform,opacity] duration-[340ms] ease-[cubic-bezier(0.4,0,1,1)]"
-          : "translate-y-0 opacity-100 transition-[transform,opacity] duration-[480ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-      }`}
+      className="pointer-events-none fixed inset-x-0 top-0 z-30 flex flex-col will-change-transform"
       style={headerStyle}
     >
       <div className="pointer-events-auto relative h-20 w-full px-4 md:px-8">

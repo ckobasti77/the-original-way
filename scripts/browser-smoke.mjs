@@ -109,6 +109,22 @@ for (const [engineName, engine] of engines) {
         { timeout: 30_000 },
       );
 
+      const navbarCheckpointStates = [];
+      const readNavbarCheckpoint = () =>
+        page.evaluate(() => {
+          const header = document.querySelector("header");
+          const story = document.querySelector(
+            "[data-tow-scrollytelling='true']",
+          );
+
+          return {
+            hidden: header?.getAttribute("data-navbar-hidden"),
+            insideStory: header?.getAttribute("data-story-navbar"),
+            stop: story?.getAttribute("data-stop-index"),
+            tone: header?.getAttribute("data-story-tone"),
+          };
+        });
+
       if (screenshotDir) {
         await page.screenshot({
           path: path.join(
@@ -120,6 +136,7 @@ for (const [engineName, engine] of engines) {
       }
 
       if (viewportName === "desktop") {
+        navbarCheckpointStates.push(await readNavbarCheckpoint());
         await page.waitForTimeout(500);
         await page.evaluate(() => {
           const frameCanvas = document.querySelector(".story-stage canvas");
@@ -168,20 +185,25 @@ for (const [engineName, engine] of engines) {
           Math.floor(viewport.width / 2),
           Math.floor(viewport.height / 2),
         );
-        await page.mouse.wheel(0, 1_000);
-        await page.waitForFunction(
-          () =>
-            document
-              .querySelector(".story-stage canvas")
-              ?.getAttribute("data-frame") === "122",
-          undefined,
-          { timeout: 10_000 },
-        );
+
+        for (const targetFrame of ["122", "183", "245"]) {
+          await page.mouse.wheel(0, 1_000);
+          await page.waitForFunction(
+            (frame) =>
+              document
+                .querySelector("#hero-frame-canvas")
+                ?.getAttribute("data-frame") === frame,
+            targetFrame,
+            { timeout: 10_000 },
+          );
+          navbarCheckpointStates.push(await readNavbarCheckpoint());
+          await page.waitForTimeout(350);
+        }
+
         await page.waitForSelector(".story-float [data-glass-active]", {
           state: "attached",
           timeout: 10_000,
         });
-        await page.waitForTimeout(350);
       }
 
       const metrics = await page.evaluate(() => {
@@ -255,9 +277,24 @@ for (const [engineName, engine] of engines) {
         });
       }
 
+      let navbarHiddenAfterStory = null;
       let navbarShownAfterUp = null;
       if (viewportName === "desktop") {
-        await page.mouse.wheel(0, -1_000);
+        await page.mouse.wheel(0, 1_200);
+        await page.waitForFunction(
+          () =>
+            document.querySelector(
+              "[data-tow-scrollytelling='true']",
+            )?.getBoundingClientRect().bottom <= 0 &&
+            document
+              .querySelector("header")
+              ?.getAttribute("data-navbar-hidden") === "true",
+          undefined,
+          { timeout: 10_000 },
+        );
+        navbarHiddenAfterStory = true;
+
+        await page.mouse.wheel(0, -500);
         await page.waitForFunction(
           () =>
             document
@@ -316,6 +353,8 @@ for (const [engineName, engine] of engines) {
         finalAdminUrl: adminPage.url(),
         errors,
         introMetrics,
+        navbarCheckpointStates,
+        navbarHiddenAfterStory,
         navbarShownAfterUp,
         routeResults,
         ...metrics,
@@ -348,7 +387,17 @@ const failures = results.filter(
         route.errors.length > 0,
     ) ||
     (result.viewport === "desktop" &&
-      (result.navbarHidden !== "true" ||
+      (result.navbarHidden !== "false" ||
+        result.navbarCheckpointStates.length !== 4 ||
+        result.navbarCheckpointStates.some(
+          (checkpoint, index) =>
+            checkpoint.hidden !== "false" ||
+            checkpoint.insideStory !== "true" ||
+            checkpoint.stop !== String(index) ||
+            checkpoint.tone !==
+              (index === 0 || index === 2 ? "light" : "dark"),
+        ) ||
+        result.navbarHiddenAfterStory !== true ||
         result.navbarShownAfterUp !== true ||
         result.glassCards.length === 0 ||
         !(
