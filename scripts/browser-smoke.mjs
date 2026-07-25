@@ -106,7 +106,7 @@ for (const [engineName, engine] of engines) {
             .querySelector(".story-stage canvas")
             ?.getAttribute("data-frame") === "61",
         undefined,
-        { timeout: 15_000 },
+        { timeout: 30_000 },
       );
 
       if (screenshotDir) {
@@ -121,36 +121,130 @@ for (const [engineName, engine] of engines) {
 
       if (viewportName === "desktop") {
         await page.waitForTimeout(500);
+        await page.evaluate(() => {
+          const frameCanvas = document.querySelector(".story-stage canvas");
+          const observedFrames = [];
+          const recordFrame = () => {
+            const frame = Number(frameCanvas?.getAttribute("data-frame"));
+            if (
+              Number.isFinite(frame) &&
+              observedFrames.at(-1) !== frame
+            ) {
+              observedFrames.push(frame);
+            }
+          };
+          const observer = new MutationObserver(recordFrame);
+          if (frameCanvas) {
+            observer.observe(frameCanvas, {
+              attributeFilter: ["data-frame"],
+              attributes: true,
+            });
+            recordFrame();
+          }
+
+          const storyMotion = {
+            observedFrames,
+            startedAt: null,
+            endedAt: null,
+            observer,
+          };
+          window.__towStoryMotion = storyMotion;
+          window.addEventListener(
+            "tow-transition-start",
+            () => {
+              storyMotion.startedAt = performance.now();
+            },
+            { once: true },
+          );
+          window.addEventListener(
+            "tow-transition-end",
+            () => {
+              storyMotion.endedAt = performance.now();
+            },
+            { once: true },
+          );
+        });
         await page.mouse.move(
           Math.floor(viewport.width / 2),
           Math.floor(viewport.height / 2),
         );
         await page.mouse.wheel(0, 1_000);
+        await page.waitForFunction(
+          () =>
+            document
+              .querySelector(".story-stage canvas")
+              ?.getAttribute("data-frame") === "122",
+          undefined,
+          { timeout: 10_000 },
+        );
         await page.waitForSelector(".story-float [data-glass-active]", {
           state: "attached",
           timeout: 10_000,
         });
-        await page.waitForTimeout(1_800);
+        await page.waitForTimeout(350);
       }
 
       const metrics = await page.evaluate(() => {
         const glassCards = [
           ...document.querySelectorAll(".story-float [data-glass-active]"),
         ];
+        const glassCanvases = glassCards
+          .map((element) => element.querySelector("canvas"))
+          .filter(Boolean);
+        const ambientOrbs = [
+          ...document.querySelectorAll(".ambient-scroll-orb"),
+        ];
+        const frameCanvas = document.querySelector("#hero-frame-canvas");
+        const storyMotion = window.__towStoryMotion;
+        storyMotion?.observer?.disconnect();
 
         return {
           horizontalOverflow:
             document.documentElement.scrollWidth >
             document.documentElement.clientWidth + 1,
-          storyCanvasCount:
-            document.querySelectorAll(".story-float canvas").length,
+          navbarHidden: document
+            .querySelector("header")
+            ?.getAttribute("data-navbar-hidden"),
+          glassCanvasCount: glassCanvases.length,
+          glassCanvases: glassCanvases.map((canvas) => ({
+            width: canvas.width,
+            height: canvas.height,
+          })),
           glassCards: glassCards.map((element) => {
             const style = getComputedStyle(element);
             return {
+              renderer: element.getAttribute("data-glass-renderer"),
               backdropFilter: style.backdropFilter,
               webkitBackdropFilter: style.webkitBackdropFilter,
             };
           }),
+          ambientOrbCount: ambientOrbs.length,
+          videoTransition: frameCanvas
+            ? {
+                renderer: frameCanvas.getAttribute(
+                  "data-transition-renderer",
+                ),
+                presentedFrames: Number(
+                  frameCanvas.getAttribute("data-video-presented-frames"),
+                ),
+                droppedFrames: Number(
+                  frameCanvas.getAttribute("data-video-dropped-frames"),
+                ),
+                callbackFrames: Number(
+                  frameCanvas.getAttribute("data-video-callback-frames"),
+                ),
+              }
+            : null,
+          storyMotion: storyMotion
+            ? {
+                observedFrames: storyMotion.observedFrames,
+                durationMs:
+                  typeof storyMotion.startedAt === "number" &&
+                  typeof storyMotion.endedAt === "number"
+                    ? storyMotion.endedAt - storyMotion.startedAt
+                    : null,
+              }
+            : null,
         };
       });
 
@@ -159,6 +253,20 @@ for (const [engineName, engine] of engines) {
           path: path.join(screenshotDir, `${engineName}-${viewportName}.png`),
           fullPage: false,
         });
+      }
+
+      let navbarShownAfterUp = null;
+      if (viewportName === "desktop") {
+        await page.mouse.wheel(0, -1_000);
+        await page.waitForFunction(
+          () =>
+            document
+              .querySelector("header")
+              ?.getAttribute("data-navbar-hidden") === "false",
+          undefined,
+          { timeout: 10_000 },
+        );
+        navbarShownAfterUp = true;
       }
 
       const adminPage = await context.newPage();
@@ -208,6 +316,7 @@ for (const [engineName, engine] of engines) {
         finalAdminUrl: adminPage.url(),
         errors,
         introMetrics,
+        navbarShownAfterUp,
         routeResults,
         ...metrics,
       });
@@ -224,7 +333,7 @@ const failures = results.filter(
     result.status !== 200 ||
     result.errors.length > 0 ||
     result.horizontalOverflow ||
-    result.storyCanvasCount !== 0 ||
+    result.ambientOrbCount !== 3 ||
     result.introMetrics.characterCount === 0 ||
     result.introMetrics.visibleCharacterCount === 0 ||
     !result.introMetrics.frameCanvas ||
@@ -239,12 +348,33 @@ const failures = results.filter(
         route.errors.length > 0,
     ) ||
     (result.viewport === "desktop" &&
-      (result.glassCards.length === 0 ||
-        !result.glassCards.some(
-          (card) =>
-            card.backdropFilter.includes("blur") ||
-            card.webkitBackdropFilter.includes("blur"),
-        ))),
+      (result.navbarHidden !== "true" ||
+        result.navbarShownAfterUp !== true ||
+        result.glassCards.length === 0 ||
+        !(
+          (result.glassCanvasCount >= 2 &&
+            result.glassCards.filter((card) => card.renderer === "webgl")
+              .length >= 2 &&
+            result.glassCanvases.every(
+              (canvas) => canvas.width > 0 && canvas.height > 0,
+            )) ||
+          result.glassCards.some(
+            (card) =>
+              card.backdropFilter.includes("blur") ||
+              card.webkitBackdropFilter.includes("blur"),
+          )
+        ) ||
+        !result.storyMotion ||
+        result.storyMotion.durationMs === null ||
+        result.storyMotion.durationMs > 2_200 ||
+        !result.videoTransition ||
+        result.videoTransition.renderer !== "video" ||
+        (result.engine === "chromium" &&
+          Math.max(
+            result.videoTransition.callbackFrames,
+            result.videoTransition.presentedFrames -
+              result.videoTransition.droppedFrames,
+          ) < 20))),
 );
 
 console.log(JSON.stringify({ baseUrl, failures, results }, null, 2));

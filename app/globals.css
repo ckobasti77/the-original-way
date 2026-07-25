@@ -164,7 +164,11 @@
   background:
     radial-gradient(circle at 12% 8%, rgba(var(--accent-rgb), 0.09), transparent 28rem),
     radial-gradient(circle at 88% 36%, rgba(168, 173, 178, 0.1), transparent 30rem),
-    linear-gradient(180deg, var(--page-bg), var(--page-bg-deep));
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-bg) 84%, transparent),
+      color-mix(in srgb, var(--page-bg-deep) 88%, transparent)
+    );
 }
 
 .premium-panel {
@@ -432,6 +436,7 @@ html {
 
 body {
   position: relative;
+  isolation: isolate;
   min-height: 100dvh;
   margin: 0;
   background:
@@ -448,16 +453,122 @@ body {
   transition: background-color 1000ms ease, color 600ms ease;
 }
 
-body::before {
-  content: "";
+.ambient-scroll-field {
+  --ambient-progress: 0;
+  --ambient-x-a: 0px;
+  --ambient-y-a: 0px;
+  --ambient-x-b: 0px;
+  --ambient-y-b: 0px;
+  --ambient-x-c: 0px;
+  --ambient-y-c: 0px;
   position: fixed;
   inset: 0;
+  z-index: 0;
+  overflow: hidden;
   pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--page-bg) 94%, transparent),
+    color-mix(in srgb, var(--page-bg-deep) 92%, transparent)
+  );
+}
+
+.site-content-layer {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+}
+
+.ambient-scroll-orb {
+  position: absolute;
+  display: block;
+  width: 72vmax;
+  height: 72vmax;
+  border-radius: 999px;
+  opacity: 0.72;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.ambient-scroll-orb-a {
+  left: -34vmax;
+  top: -30vmax;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 24%),
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 54%);
-  mix-blend-mode: soft-light;
-  opacity: 0.5;
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(104, 143, 174, 0.24),
+      rgba(146, 174, 194, 0.1) 36%,
+      transparent 68%
+    );
+  transform: translate3d(
+    var(--ambient-x-a),
+    var(--ambient-y-a),
+    0
+  );
+}
+
+.ambient-scroll-orb-b {
+  right: -38vmax;
+  top: 14vh;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(193, 164, 126, 0.18),
+      rgba(207, 190, 165, 0.08) 38%,
+      transparent 70%
+    );
+  transform: translate3d(
+    var(--ambient-x-b),
+    var(--ambient-y-b),
+    0
+  );
+}
+
+.ambient-scroll-orb-c {
+  bottom: -45vmax;
+  left: 18vw;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(113, 133, 148, 0.18),
+      rgba(171, 181, 188, 0.07) 42%,
+      transparent 72%
+    );
+  transform: translate3d(
+    var(--ambient-x-c),
+    var(--ambient-y-c),
+    0
+  );
+}
+
+:root[data-theme="dark"] .ambient-scroll-orb-a {
+  background:
+    radial-gradient(
+      circle,
+      rgba(36, 78, 112, 0.34),
+      rgba(28, 55, 78, 0.12) 40%,
+      transparent 70%
+    );
+}
+
+:root[data-theme="dark"] .ambient-scroll-orb-b {
+  background:
+    radial-gradient(
+      circle,
+      rgba(103, 76, 56, 0.24),
+      rgba(73, 55, 45, 0.1) 40%,
+      transparent 70%
+    );
+}
+
+:root[data-theme="dark"] .ambient-scroll-orb-c {
+  background:
+    radial-gradient(
+      circle,
+      rgba(67, 87, 101, 0.25),
+      rgba(45, 58, 67, 0.08) 42%,
+      transparent 72%
+    );
 }
 
 a {
@@ -590,8 +701,11 @@ button:focus-visible {
     );
 }
 
-.story-copy-panel {
+[data-tow-scrollytelling] .story-copy-panel {
   isolation: isolate;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .story-copy-panel::before {
@@ -606,7 +720,9 @@ button:focus-visible {
       var(--readability-wash) 0%,
       var(--readability-edge) 48%,
       transparent 76%
-    );
+    ),
+    color-mix(in srgb, var(--surface-elevated) 74%, transparent);
+  backdrop-filter: blur(16px);
   box-shadow: 0 18px 60px rgba(var(--shadow-rgb), 0.08);
   opacity: 0.78;
 }
@@ -618,7 +734,8 @@ button:focus-visible {
       var(--readability-wash) 0%,
       var(--readability-edge) 48%,
       transparent 76%
-    );
+    ),
+    color-mix(in srgb, var(--surface-elevated) 74%, transparent);
 }
 
 .story-title {
@@ -825,7 +942,11 @@ body.story-lock::-webkit-scrollbar {
   z-index: 20;
   min-height: 100vh;
   background:
-    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-bg) 72%, transparent) 0%,
+      color-mix(in srgb, var(--page-bg-deep) 78%, transparent) 100%
+    );
   box-shadow: 0 -32px 80px rgba(var(--shadow-rgb), 0.14);
   color: var(--text-primary);
   color-scheme: light;
@@ -879,7 +1000,7 @@ body.story-lock::-webkit-scrollbar {
 
 .post-hero-editorial {
   overflow: clip;
-  background: var(--page-bg);
+  background: transparent;
   color: var(--text-primary);
 }
 

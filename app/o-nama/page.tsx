@@ -27,7 +27,7 @@ const values = [
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[var(--page-bg)] text-[var(--text-primary)]">
+    <main className="store-shell min-h-screen overflow-hidden text-[var(--text-primary)]">
       <Navbar />
 
       <section className="relative px-4 pb-14 pt-28 md:px-8 md:pb-20">

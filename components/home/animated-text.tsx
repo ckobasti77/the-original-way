@@ -137,11 +137,11 @@ export function AnimatedText({
 
         // Stagger details (subtitle & CTA) inside left panel
         const leftChildren = leftPanel.querySelectorAll(".story-subcopy, .story-cta");
+        gsap.set(leftChildren, { opacity: 1 });
         gsap.fromTo(
           leftChildren,
-          { opacity: 0, y: 15 },
+          { y: 15 },
           {
-            opacity: 1,
             y: 0,
             duration: 0.65,
             stagger: 0.1,
@@ -153,11 +153,11 @@ export function AnimatedText({
 
         // Stagger details inside right panel
         const rightChildren = rightPanel.querySelectorAll(".story-subcopy, .story-cta");
+        gsap.set(rightChildren, { opacity: 1 });
         gsap.fromTo(
           rightChildren,
-          { opacity: 0, y: 15 },
+          { y: 15 },
           {
-            opacity: 1,
             y: 0,
             duration: 0.65,
             stagger: 0.1,

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { bodyFont, displayFont } from "@/app/fonts";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { SettingsProvider } from "@/components/settings-provider";
+import { AmbientScrollBackground } from "@/components/site/ambient-scroll-background";
 import { FloatingActions } from "@/components/site/floating-actions";
 import { CartProvider } from "@/components/shop/cart-provider";
 
@@ -43,14 +44,17 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-screen" suppressHydrationWarning>
-        <SettingsProvider>
-          <CartProvider>
-            <ConvexClientProvider>
-              {children}
-              <FloatingActions />
-            </ConvexClientProvider>
-          </CartProvider>
-        </SettingsProvider>
+        <AmbientScrollBackground />
+        <div className="site-content-layer">
+          <SettingsProvider>
+            <CartProvider>
+              <ConvexClientProvider>
+                {children}
+                <FloatingActions />
+              </ConvexClientProvider>
+            </CartProvider>
+          </SettingsProvider>
+        </div>
       </body>
     </html>
   );

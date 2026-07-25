@@ -352,8 +352,14 @@ export function Navbar() {
 
   useEffect(() => {
     const handleStart = (event: Event) => {
-      const nextStop = (event as CustomEvent<{ to?: number }>).detail?.to ?? 0;
+      const detail = (
+        event as CustomEvent<{ from?: number; to?: number }>
+      ).detail;
+      const nextStop = detail?.to ?? 0;
       setStoryTone(nextStop === 0 || nextStop === 2 ? "light" : "dark");
+      if (typeof detail?.from === "number" && typeof detail.to === "number") {
+        setIsHidden(detail.to > detail.from);
+      }
       closeDrawer();
     };
 
@@ -555,10 +561,11 @@ export function Navbar() {
     <header 
       data-story-navbar={isInsideStory ? "true" : "false"}
       data-story-tone={isInsideStory ? storyTone : undefined}
-      className={`pointer-events-none fixed inset-x-0 top-0 z-30 flex flex-col transition-[transform,opacity] ${
+      data-navbar-hidden={isHidden ? "true" : "false"}
+      className={`pointer-events-none fixed inset-x-0 top-0 z-30 flex transform-gpu flex-col will-change-transform motion-reduce:transition-none ${
         isHidden 
-          ? "duration-[420ms] ease-[cubic-bezier(0.3,0,0.8,0.15)] -translate-y-[120%] opacity-0"
-          : "duration-[560ms] ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-0 opacity-100"
+          ? "-translate-y-[115%] opacity-0 transition-[transform,opacity] duration-[340ms] ease-[cubic-bezier(0.4,0,1,1)]"
+          : "translate-y-0 opacity-100 transition-[transform,opacity] duration-[480ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
       }`}
       style={headerStyle}
     >

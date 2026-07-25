@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-primary)]">
+    <main className="store-shell min-h-screen text-[var(--text-primary)]">
       <Navbar />
 
       <section className="relative border-b border-[var(--border-soft)] px-4 pb-12 pt-28 md:px-8 md:pb-16">

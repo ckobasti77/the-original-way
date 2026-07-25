@@ -332,11 +332,11 @@ function RecommendedProductsCarouselLayout({ products }: { products: Recommended
   return (
     <section
       aria-label={copy.ariaLabel}
-      className="relative isolate overflow-hidden border-t border-[var(--border-soft)] bg-[var(--page-bg)] px-4 py-16 text-[var(--text-primary)] md:px-8 md:py-24"
+      className="relative isolate overflow-hidden border-t border-[var(--border-soft)] bg-transparent px-4 py-16 text-[var(--text-primary)] md:px-8 md:py-24"
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_20%,rgba(var(--accent-rgb),0.18),transparent_32%),linear-gradient(180deg,var(--page-bg),var(--page-bg-deep))]"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_20%,rgba(var(--accent-rgb),0.14),transparent_38%),linear-gradient(180deg,color-mix(in_srgb,var(--page-bg)_58%,transparent),color-mix(in_srgb,var(--page-bg-deep)_66%,transparent))]"
       />
       <div className="mx-auto max-w-7xl">
         <div className="max-w-3xl">
