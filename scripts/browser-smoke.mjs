@@ -104,7 +104,7 @@ for (const [engineName, engine] of engines) {
         () =>
           document
             .querySelector(".story-stage canvas")
-            ?.getAttribute("data-frame") === "61",
+            ?.getAttribute("data-frame") === "80",
         undefined,
         { timeout: 30_000 },
       );
@@ -186,7 +186,7 @@ for (const [engineName, engine] of engines) {
           Math.floor(viewport.height / 2),
         );
 
-        for (const targetFrame of ["122", "183", "245"]) {
+        for (const targetFrame of ["161", "242", "323"]) {
           await page.mouse.wheel(0, 1_000);
           await page.waitForFunction(
             (frame) =>

@@ -30,6 +30,30 @@
   initial-value: rgba(242, 237, 228, 0.75);
 }
 
+@property --navbar-mask-solid-left {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --navbar-mask-clear-left {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --navbar-mask-clear-right {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --navbar-mask-solid-right {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
 :root {
   --page-bg: #f3efe8;
   --page-bg-deep: #e8e0d5;
@@ -56,15 +80,21 @@
   --readability-wash: rgba(255, 255, 255, 0.5);
   --readability-edge: rgba(247, 241, 232, 0.24);
   --navbar-bg: color-mix(in srgb, var(--page-bg) 88%, transparent);
-  --navbar-center-mask: linear-gradient(to right, black, black);
+  --navbar-mask-solid-left: 50%;
+  --navbar-mask-clear-left: 50%;
+  --navbar-mask-clear-right: 50%;
+  --navbar-mask-solid-right: 50%;
   --card-glow-rgb: 168, 173, 178;
   --story-shadow-color: rgba(242, 237, 228, 0.75);
   color-scheme: light;
 }
 
 @media (min-width: 1024px) {
-  :root {
-    --navbar-center-mask: linear-gradient(to right, black 0%, black 31%, transparent 43%, transparent 57%, black 69%, black 100%);
+  [data-story-navbar="true"] {
+    --navbar-mask-solid-left: 31%;
+    --navbar-mask-clear-left: 43%;
+    --navbar-mask-clear-right: 57%;
+    --navbar-mask-solid-right: 69%;
   }
 }
 

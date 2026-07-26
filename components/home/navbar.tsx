@@ -19,7 +19,7 @@ const NAVBAR_BACKGROUND_IMAGE =
   "linear-gradient(var(--navbar-bg), var(--navbar-bg))";
 
 const NAVBAR_CENTER_MASK =
-  "var(--navbar-center-mask, linear-gradient(to right, black 0%, black 31%, transparent 43%, transparent 57%, black 69%, black 100%))";
+  "linear-gradient(to right, black 0%, black var(--navbar-mask-solid-left), transparent var(--navbar-mask-clear-left), transparent var(--navbar-mask-clear-right), black var(--navbar-mask-solid-right), black 100%)";
 
 const NAVBAR_BOTTOM_MASK =
   "linear-gradient(to bottom, black 0%, black 66%, transparent 100%)";
@@ -575,9 +575,23 @@ export function Navbar() {
     transform: isHidden
       ? "translate3d(0, -115%, 0)"
       : "translate3d(0, 0, 0)",
-    transition: isHidden
-      ? "transform 340ms cubic-bezier(0.4, 0, 1, 1)"
-      : "transform 480ms cubic-bezier(0.16, 1, 0.3, 1)",
+    transition: [
+      isHidden
+        ? "transform 340ms cubic-bezier(0.4, 0, 1, 1)"
+        : "transform 480ms cubic-bezier(0.16, 1, 0.3, 1)",
+      `--navbar-mask-solid-left ${
+        isInsideStory ? "560ms" : "680ms"
+      } cubic-bezier(0.16, 1, 0.3, 1)`,
+      `--navbar-mask-clear-left ${
+        isInsideStory ? "560ms" : "680ms"
+      } cubic-bezier(0.16, 1, 0.3, 1)`,
+      `--navbar-mask-clear-right ${
+        isInsideStory ? "560ms" : "680ms"
+      } cubic-bezier(0.16, 1, 0.3, 1)`,
+      `--navbar-mask-solid-right ${
+        isInsideStory ? "560ms" : "680ms"
+      } cubic-bezier(0.16, 1, 0.3, 1)`,
+    ].join(", "),
   } as React.CSSProperties;
 
   return (

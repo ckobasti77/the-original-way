@@ -20,13 +20,13 @@ import { LiquidGlassCard } from "./liquid-glass-card";
 import { gsap } from "gsap";
 
 const INTRO_START_FRAME = 1;
-const STOP_FRAMES = [61, 122, 183, 245] as const;
+const STOP_FRAMES = [80, 161, 242, 323] as const;
 const INTRO_END_FRAME = STOP_FRAMES[0];
 const FRAME_SEGMENTS = [
-  [1, 61],
-  [62, 122],
-  [123, 183],
-  [184, 245],
+  [1, 80],
+  [81, 161],
+  [162, 242],
+  [243, 323],
 ] as const;
 const STEP_TRIGGER_DELTA = 56;
 const TOUCH_TRIGGER_DELTA = 52;

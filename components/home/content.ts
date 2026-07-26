@@ -237,7 +237,7 @@ export const NAV_LINKS: NavLinkItem[] = [
 export const CHAPTERS: Chapter[] = [
   {
     id: "alpine",
-    frame: 122,
+    frame: 161,
     eyebrow: {
       sr: "POGLAVLJE 01 / ZIMSKI STIL",
       en: "CHAPTER 01 / WINTER STYLE",
@@ -283,7 +283,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "resort",
-    frame: 183,
+    frame: 242,
     eyebrow: {
       sr: "POGLAVLJE 02 / LETNJI KROJEVI",
       en: "CHAPTER 02 / SUMMER CUTS",
@@ -329,7 +329,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "after-dark",
-    frame: 245,
+    frame: 323,
     eyebrow: {
       sr: "POGLAVLJE 03 / CASUAL STIL",
       en: "CHAPTER 03 / CASUAL STYLE",
