@@ -4,11 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 
 import { useSettings } from "@/components/settings-provider";
 import { CartDrawer, CartNavButton } from "@/components/shop/cart-drawer";
 import { ProductSearch } from "@/components/shop/product-search";
+import { api } from "@/convex/_generated/api";
 import { localizeHref, stripLocale } from "@/lib/storefront-i18n";
 import logo from "@/public/logos/logo.png";
 
@@ -322,8 +323,10 @@ export function Navbar() {
   const [isHidden, setIsHidden] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { isAuthenticated } = useConvexAuth();
+  const currentUser = useQuery(api.auth.me, isAuthenticated ? {} : "skip");
   const copy = UI_COPY[language];
   const authHref = localizeHref(isAuthenticated ? "/profil" : "/prijava", language);
+  const avatarHref = currentUser?.isAdmin ? "/admin" : authHref;
   const authLabel = isAuthenticated ? copy.profileCta : copy.loginCta;
   const convexEnabled = Boolean(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -698,7 +701,7 @@ export function Navbar() {
               <ThemeToggle />
               {isAuthenticated ? (
                 <Link
-                  href={authHref}
+                  href={avatarHref}
                   aria-label={copy.profile}
                   className={ICON_BUTTON_CLASS}
                 >
