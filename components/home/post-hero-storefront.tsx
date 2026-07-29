@@ -8,7 +8,6 @@ import { useQuery } from "convex/react";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import { localizeHref } from "@/lib/storefront-i18n";
-import { sampleShopProducts } from "@/lib/shop-sample-data";
 import { formatShopPrice } from "@/lib/shop-taxonomy";
 
 const COPY = {
@@ -105,19 +104,9 @@ export function PostHeroStorefront() {
   const { language } = useSettings();
   const copy = COPY[language];
   const rootRef = useRef<HTMLDivElement>(null);
-  const productsResult = useQuery(api.products.listRecommended, { limit: 6 });
+  const productsResult = useQuery(api.products.list);
   const featured = useMemo<FeaturedProduct[]>(() => {
-    if (productsResult?.length) {
-      return productsResult.slice(0, 3) as FeaturedProduct[];
-    }
-    return sampleShopProducts.slice(0, 3).map((product) => ({
-      _id: product.id,
-      name: product.name,
-      slug: product.slug,
-      salePrice: product.salePrice,
-      imageUrls: product.imageUrls,
-      brand: product.brand ? { name: product.brand.name } : null,
-    }));
+    return (productsResult?.slice(0, 3) ?? []) as FeaturedProduct[];
   }, [productsResult]);
 
   useEffect(() => {

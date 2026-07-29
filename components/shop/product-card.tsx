@@ -31,11 +31,6 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           </div>
         )}
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-          {product.isDemo ? (
-            <span className="rounded-md bg-[var(--text-primary)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--page-bg)]">
-              Demo
-            </span>
-          ) : null}
           {product.category ? (
             <span className="rounded-md bg-[rgba(255,255,255,0.86)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#142133]">
               {product.category.name}

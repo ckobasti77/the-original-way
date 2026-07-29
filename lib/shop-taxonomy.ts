@@ -46,7 +46,6 @@ export type ShopProduct = {
   createdAt: number;
   isRecommended?: boolean;
   recommendationOrder?: number;
-  isDemo?: boolean;
 };
 
 export type ShopCatalog = {

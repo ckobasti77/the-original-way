@@ -15,22 +15,7 @@ import { useQuery } from "convex/react";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { sampleShopProducts } from "@/lib/shop-sample-data";
 import { formatShopPrice, type ProductGender, type ProductType } from "@/lib/shop-taxonomy";
-
-const fallbackRecommendedProducts: RecommendedProduct[] = sampleShopProducts.map((p) => ({
-  _id: p.id as Id<"products">,
-  name: p.name,
-  description: p.description,
-  slug: p.slug,
-  type: p.type,
-  gender: p.gender,
-  salePrice: p.salePrice,
-  imageUrls: p.imageUrls,
-  brand: p.brand ? { _id: p.brand.id as Id<"brands">, name: p.brand.name } : null,
-  isRecommended: true,
-  recommendationOrder: 1,
-}));
 
 type RecommendedProduct = {
   _id: Id<"products">;
@@ -361,17 +346,12 @@ function RecommendedProductsCarouselLayout({ products }: { products: Recommended
 function RecommendedProductsCarouselConvex() {
   const productsResult = useQuery(api.products.listRecommended, { limit: 10 });
 
-  const products = useMemo(() => {
-    if (productsResult === undefined) {
-      return undefined; // loading
-    }
-    if (productsResult.length > 0) {
-      return productsResult as RecommendedProduct[];
-    }
-    return fallbackRecommendedProducts;
-  }, [productsResult]);
+  const products = useMemo(
+    () => productsResult as RecommendedProduct[] | undefined,
+    [productsResult],
+  );
 
-  if (products === undefined) {
+  if (!products?.length) {
     return null;
   }
 
@@ -380,7 +360,7 @@ function RecommendedProductsCarouselConvex() {
 
 export function RecommendedProductsCarousel() {
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
-    return <RecommendedProductsCarouselLayout products={fallbackRecommendedProducts} />;
+    return null;
   }
 
   return <RecommendedProductsCarouselConvex />;

@@ -1,6 +1,5 @@
 import { api } from "@/convex/_generated/api";
 import { createServerConvexClient } from "@/lib/convex/server-client";
-import { sampleShopCatalog } from "@/lib/shop-sample-data";
 import {
   defaultShopCategories,
   defaultShopCollections,
@@ -197,66 +196,18 @@ function normalizeCatalog(
   };
 }
 
-function mergeBySlug<T extends { slug: string }>(primary: T[], additions: T[]) {
-  const seen = new Set(primary.map((item) => item.slug));
-  return [
-    ...primary,
-    ...additions.filter((item) => {
-      if (seen.has(item.slug)) return false;
-      seen.add(item.slug);
-      return true;
-    }),
-  ];
-}
-
-function mergeCollectionProductIds(
-  primary: ShopCollection[],
-  additions: ShopCollection[],
-) {
-  const collectionsBySlug = new Map<string, ShopCollection>();
-
-  for (const collection of [...primary, ...additions]) {
-    const existing = collectionsBySlug.get(collection.slug);
-    if (!existing) {
-      collectionsBySlug.set(collection.slug, { ...collection });
-      continue;
-    }
-
-    existing.productIds = Array.from(
-      new Set([...existing.productIds, ...collection.productIds]),
-    );
-  }
-
-  return Array.from(collectionsBySlug.values());
-}
-
-function withPreviewProducts(catalog: ShopCatalog): ShopCatalog {
-  const productIds = new Set(catalog.products.map((product) => product.id));
-  const previewProducts = sampleShopCatalog.products.filter(
-    (product) => !productIds.has(product.id),
-  );
-
-  if (previewProducts.length === 0) {
-    return catalog;
-  }
-
+function emptyCatalog(): ShopCatalog {
   return {
-    brands: mergeBySlug(catalog.brands, sampleShopCatalog.brands),
-    categories: mergeBySlug(
-      catalog.categories,
-      sampleShopCatalog.categories,
-    ).sort((a, b) => a.sortOrder - b.sortOrder),
-    collections: mergeCollectionProductIds(
-      catalog.collections,
-      sampleShopCatalog.collections,
-    ),
-    products: [...catalog.products, ...previewProducts],
+    brands: [],
+    categories: defaultShopCategories,
+    collections: defaultShopCollections,
+    products: [],
   };
 }
 
 export async function getShopCatalog(): Promise<ShopCatalog> {
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
-    return sampleShopCatalog;
+    return emptyCatalog();
   }
 
   try {
@@ -278,20 +229,18 @@ export async function getShopCatalog(): Promise<ShopCatalog> {
     }
 
     if (!Array.isArray(rawProducts) || rawProducts.length === 0) {
-      return sampleShopCatalog;
+      return emptyCatalog();
     }
 
-    return withPreviewProducts(
-      normalizeCatalog(
-        rawProducts as RawProduct[],
-        Array.isArray(rawBrands) ? (rawBrands as RawBrand[]) : [],
-        rawCategories,
-        Array.isArray(rawCollections) ? (rawCollections as RawCollection[]) : [],
-      ),
+    return normalizeCatalog(
+      rawProducts as RawProduct[],
+      Array.isArray(rawBrands) ? (rawBrands as RawBrand[]) : [],
+      rawCategories,
+      Array.isArray(rawCollections) ? (rawCollections as RawCollection[]) : [],
     );
   } catch (error) {
-    console.error("Shop catalog fallback:", error);
-    return sampleShopCatalog;
+    console.error("Shop catalog unavailable:", error);
+    return emptyCatalog();
   }
 }
 

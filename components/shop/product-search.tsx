@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import { localizeHref } from "@/lib/storefront-i18n";
-import { sampleShopProducts } from "@/lib/shop-sample-data";
 import { formatShopPrice, slugify, type ShopProduct } from "@/lib/shop-taxonomy";
 
 type SearchVariant = "desktop" | "mobile";
@@ -307,7 +306,7 @@ function ConvexProductSearch({
   variant: SearchVariant;
 }) {
   const products = useQuery(api.products.list) as RawSearchProduct[] | undefined;
-  const normalizedProducts = products?.map(normalizeSearchProduct) ?? sampleShopProducts;
+  const normalizedProducts = products?.map(normalizeSearchProduct) ?? [];
 
   return (
     <SearchShell
@@ -344,7 +343,7 @@ export function ProductSearch({
     <SearchShell
       className={className}
       onNavigate={onNavigate}
-      products={sampleShopProducts}
+      products={[]}
       variant={variant}
     />
   );

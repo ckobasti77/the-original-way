@@ -51,7 +51,9 @@ function readStoredCart() {
     const stored = window.localStorage.getItem(CART_STORAGE_KEY);
     if (!stored) return [];
     const parsed = JSON.parse(stored) as CartItem[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item) => !item.productId.startsWith("demo-"))
+      : [];
   } catch {
     return [];
   }
