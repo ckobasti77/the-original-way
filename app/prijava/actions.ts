@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 
 import { api } from "@/convex/_generated/api";
 import { AUTH_COPY, getAuthLanguage } from "@/components/auth/content";
-import { AUTH_SESSION_COOKIE, hashSessionToken } from "@/lib/auth/server";
+import {
+  AUTH_SESSION_COOKIE,
+  hashSessionToken,
+  isServerAdminEmail,
+} from "@/lib/auth/server";
 import { createServerConvexClient } from "@/lib/convex/server-client";
 
 type FieldName = "firstName" | "lastName" | "email" | "password" | "confirmPassword" | "token";
@@ -225,6 +229,7 @@ export async function login(
   const requestedNext = getValue(formData, "next");
   const messages = AUTH_COPY[language].messages;
   const validated = validateLoginForm(formData);
+  let isAdmin = false;
 
   if (Object.keys(validated.fieldErrors ?? {}).length > 0) {
     return makeState(messages.fieldCheck[language], validated.fieldErrors);
@@ -239,15 +244,22 @@ export async function login(
     });
 
     await setSessionCookie(result.sessionToken, result.sessionExpiresAt);
+    isAdmin = isServerAdminEmail(result.user.email);
   } catch (error) {
     void error;
     return makeState(messages.invalidCredentials[language]);
   }
 
+  if (isAdmin) {
+    redirect("/admin");
+  }
+
   const safeNext =
     requestedNext.startsWith("/") &&
     !requestedNext.startsWith("//") &&
-    !requestedNext.includes("\\")
+    !requestedNext.includes("\\") &&
+    requestedNext !== "/admin" &&
+    !requestedNext.startsWith("/admin/")
       ? requestedNext
       : `/${language}/profil`;
   redirect(safeNext);

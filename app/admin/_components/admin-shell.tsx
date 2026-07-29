@@ -85,27 +85,51 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           }`}
         >
           <div className="flex h-full flex-col gap-8 overflow-y-auto px-5 py-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/50">
                   The Original Way
                 </p>
                 <h1 className="mt-3 text-3xl font-semibold leading-none">Admin</h1>
               </div>
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="Zatvori meni"
-                className="cursor-pointer rounded-md border border-white/15 p-2 hover:bg-white/10 focus:outline-none lg:hidden"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/sr"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-label="Vrati se na sajt"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-md border border-white/15 bg-white/[0.05] px-3 text-xs font-bold text-white transition hover:border-white/30 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  <svg
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.8}
+                      d="M3 11.5 12 4l9 7.5M5.5 10v9h13v-9M9.5 19v-5h5v5"
+                    />
+                  </svg>
+                  Sajt
+                </Link>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-label="Zatvori meni"
+                  className="cursor-pointer rounded-md border border-white/15 p-2 hover:bg-white/10 focus:outline-none lg:hidden"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <nav aria-label="Admin sekcije" className="flex flex-col gap-2">
