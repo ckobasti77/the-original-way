@@ -912,8 +912,12 @@ export function Navbar() {
 
         {/* Drawer Footer */}
         <div className="border-t border-[var(--border-soft)] px-6 py-6 bg-[rgba(var(--shadow-rgb),0.02)] flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
           <Link
-            href={authHref}
+            href={avatarHref}
             onClick={closeDrawer}
             className={`${AUTH_CTA_CLASS} min-h-[2.6rem] text-[0.78rem] active:scale-95 transition-all text-center`}
             style={{
@@ -923,10 +927,6 @@ export function Navbar() {
           >
             {authLabel}
           </Link>
-          <div className="flex items-center justify-between">
-            <LanguageToggle />
-            <ThemeToggle />
-          </div>
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--text-muted)] text-center mt-1">
             © 2026 {BRAND_NAME} • EST.
           </p>
