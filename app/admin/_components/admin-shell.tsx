@@ -78,9 +78,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         />
       ) : null}
 
-      <div className="grid min-h-screen lg:grid-cols-[18rem_minmax(0,1fr)]">
+      <div className="min-h-screen lg:pl-72">
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-72 transform border-black/10 bg-[#111513] text-white transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:h-screen lg:w-auto lg:border-r lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-50 w-72 transform border-black/10 bg-[#111513] text-white transition-transform duration-300 ease-in-out lg:border-r lg:translate-x-0 ${
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
