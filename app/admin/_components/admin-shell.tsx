@@ -1,5 +1,6 @@
 "use client";
 
+import { useConvexAuth } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -8,8 +9,42 @@ import { logout } from "@/app/prijava/actions";
 import { adminNavItems } from "../_lib/constants";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#eef0eb] px-6 text-[#141816]">
+        <div
+          aria-live="polite"
+          className="max-w-md rounded-xl border border-black/10 bg-white p-8 text-center shadow-sm"
+          role="status"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#276c56]">
+            The Original Way Admin
+          </p>
+          <h1 className="mt-3 text-2xl font-semibold">
+            {isLoading ? "Povezivanje admin naloga" : "Admin sesija nije povezana"}
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-black/55">
+            {isLoading
+              ? "Sačekajte trenutak dok potvrđujemo bezbednu Convex sesiju."
+              : "Osvežite stranicu da ponovo povežete admin sesiju."}
+          </p>
+          {!isLoading ? (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-md bg-[#276c56] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#205a48]"
+            >
+              Učitaj ponovo
+            </button>
+          ) : null}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#eef0eb] text-[#141816]">
