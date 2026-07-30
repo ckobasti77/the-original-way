@@ -33,11 +33,19 @@ export type NavGroup = {
   label: LocalizedText;
 };
 
+/**
+ * `menu` decides what a dropdown resolves to at runtime:
+ * "collections" lists the curated collections, "categories" lists the product
+ * categories (optionally scoped to a gender).
+ */
+export type NavMenuKind = "collections" | "categories";
+
 export type NavLinkItem = {
   type: "simple" | "dropdown";
   label: LocalizedText;
   href: string;
-  items?: NavItem[];
+  menu?: NavMenuKind;
+  gender?: "men" | "women";
 };
 
 export const BRAND_NAME = "The Original Way";
@@ -61,168 +69,32 @@ export const NAV_LINKS: NavLinkItem[] = [
   },
   {
     type: "dropdown",
+    menu: "collections",
     label: {
       sr: "Kolekcije",
       en: "Collections",
     },
     href: "/proizvodi",
-    items: [
-      {
-        href: "/proizvodi?collection=alpska-kapsula",
-        label: {
-          sr: "Zimska kolekcija",
-          en: "Winter collection",
-        },
-        description: {
-          sr: "Strukturni kaputi, topla pletiva i premium obuća krojeni za niske temperature.",
-          en: "Structured coats, warm knitwear, and premium footwear tailored for low temperatures.",
-        },
-        ariaLabel: {
-          sr: "Otvori zimsku kolekciju",
-          en: "Open the winter collection",
-        },
-      },
-      {
-        href: "/proizvodi?collection=sunset-resort",
-        label: {
-          sr: "Letnja kolekcija",
-          en: "Summer collection",
-        },
-        description: {
-          sr: "Laki laneni krojevi, prozračni materijali i udobna letnja obuća.",
-          en: "Light linen cuts, breathable fabrics, and comfortable summer footwear.",
-        },
-        ariaLabel: {
-          sr: "Otvori letnju kolekciju",
-          en: "Open the summer collection",
-        },
-      },
-      {
-        href: "/proizvodi?collection=after-dark",
-        label: {
-          sr: "Casual kolekcija",
-          en: "Casual collection",
-        },
-        description: {
-          sr: "Moderna ležerna garderoba i urban dizajn za svakodnevni stil i udobnost.",
-          en: "Modern casual apparel and urban design for everyday style and comfort.",
-        },
-        ariaLabel: {
-          sr: "Otvori casual kolekciju",
-          en: "Open the casual collection",
-        },
-      },
-    ],
   },
   {
     type: "dropdown",
+    menu: "categories",
+    gender: "men",
     label: {
       sr: "Muškarci",
       en: "Men",
     },
     href: "/proizvodi?gender=men",
-    items: [
-      {
-        href: "/proizvodi?gender=men&collection=alpska-kapsula",
-        label: {
-          sr: "Zimska kolekcija",
-          en: "Winter collection",
-        },
-        description: {
-          sr: "Strukturni muški slojevi za otpornost, toplotu i hladne dane.",
-          en: "Structured men's layers built for resilience, warmth, and colder days.",
-        },
-        ariaLabel: {
-          sr: "Otvori mušku zimsku kolekciju",
-          en: "Open men's winter collection",
-        },
-      },
-      {
-        href: "/proizvodi?gender=men&collection=sunset-resort",
-        label: {
-          sr: "Letnja kolekcija",
-          en: "Summer collection",
-        },
-        description: {
-          sr: "Muški tečni krojevi i prozračni lan za tople letnje dane.",
-          en: "Men's fluid cuts and breathable linen for warm summer days.",
-        },
-        ariaLabel: {
-          sr: "Otvori mušku letnju kolekciju",
-          en: "Open men's summer collection",
-        },
-      },
-      {
-        href: "/proizvodi?gender=men&collection=after-dark",
-        label: {
-          sr: "Casual kolekcija",
-          en: "Casual collection",
-        },
-        description: {
-          sr: "Muška ležerna uniforma za svakodnevni komfor i opušten stil.",
-          en: "Men's casual uniform for daily comfort and relaxed style.",
-        },
-        ariaLabel: {
-          sr: "Otvori mušku casual kolekciju",
-          en: "Open men's casual collection",
-        },
-      },
-    ],
   },
   {
     type: "dropdown",
+    menu: "categories",
+    gender: "women",
     label: {
       sr: "Žene",
       en: "Women",
     },
     href: "/proizvodi?gender=women",
-    items: [
-      {
-        href: "/proizvodi?gender=women&collection=alpska-kapsula",
-        label: {
-          sr: "Zimska kolekcija",
-          en: "Winter collection",
-        },
-        description: {
-          sr: "Ženski strukturni kaputi i pletiva za visoku zaštitu i toplotu.",
-          en: "Women's structured coats and knitwear for high protection and warmth.",
-        },
-        ariaLabel: {
-          sr: "Otvori žensku zimsku kolekciju",
-          en: "Open women's winter collection",
-        },
-      },
-      {
-        href: "/proizvodi?gender=women&collection=sunset-resort",
-        label: {
-          sr: "Letnja kolekcija",
-          en: "Summer collection",
-        },
-        description: {
-          sr: "Ženske svilene i lanene siluete za tople letnje dane.",
-          en: "Women's silk and linen silhouettes for warm summer days.",
-        },
-        ariaLabel: {
-          sr: "Otvori žensku letnju kolekciju",
-          en: "Open women's summer collection",
-        },
-      },
-      {
-        href: "/proizvodi?gender=women&collection=after-dark",
-        label: {
-          sr: "Casual kolekcija",
-          en: "Casual collection",
-        },
-        description: {
-          sr: "Ženska minimalistička ležerna odela i haljine za svaki dan.",
-          en: "Women's minimalist casual suits and dresses for everyday wear.",
-        },
-        ariaLabel: {
-          sr: "Otvori žensku casual kolekciju",
-          en: "Open women's casual collection",
-        },
-      },
-    ],
   },
   {
     type: "simple",
@@ -233,6 +105,86 @@ export const NAV_LINKS: NavLinkItem[] = [
     href: "/kontakt",
   },
 ];
+
+/**
+ * Category records are stored with Serbian names only, so the English labels are
+ * mapped by slug here. Unknown slugs fall back to the stored name.
+ */
+export const CATEGORY_LABELS_EN: Record<string, string> = {
+  majice: "T-shirts",
+  prsluci: "Vests",
+  dzemperi: "Sweaters",
+  jakne: "Jackets",
+  suskavci: "Windbreakers",
+  "polo-majice": "Polo shirts",
+  "skijaske-jakne": "Ski jackets",
+  trenerke: "Tracksuits",
+  kompleti: "Sets",
+  "full-zip-duksevi": "Full-zip hoodies",
+  "half-zip-duksevi": "Half-zip hoodies",
+  "bomber-jakne": "Bomber jackets",
+  patike: "Sneakers",
+  "duboke-patike": "High-top sneakers",
+  cipele: "Shoes",
+  papuce: "Slides",
+};
+
+export const COLLECTION_COPY: Record<
+  string,
+  { label: LocalizedText; description: LocalizedText }
+> = {
+  "alpska-kapsula": {
+    label: {
+      sr: "Zimska kolekcija",
+      en: "Winter collection",
+    },
+    description: {
+      sr: "Strukturni kaputi, topla pletiva i premium obuća za niske temperature.",
+      en: "Structured coats, warm knitwear, and premium footwear for low temperatures.",
+    },
+  },
+  "sunset-resort": {
+    label: {
+      sr: "Letnja kolekcija",
+      en: "Summer collection",
+    },
+    description: {
+      sr: "Laki laneni krojevi, prozračni materijali i udobna letnja obuća.",
+      en: "Light linen cuts, breathable fabrics, and comfortable summer footwear.",
+    },
+  },
+  "after-dark": {
+    label: {
+      sr: "Casual kolekcija",
+      en: "Casual collection",
+    },
+    description: {
+      sr: "Moderna ležerna garderoba i urban dizajn za svakodnevni stil.",
+      en: "Modern casual apparel and urban design for everyday style.",
+    },
+  },
+};
+
+export const NAV_MENU_COPY = {
+  sr: {
+    categories: "Kategorije",
+    clothing: "Odeća",
+    collections: "Kolekcije",
+    footwear: "Obuća",
+    viewAll: "Prikaži sve",
+    viewAllCollections: "Svi proizvodi",
+    empty: "Kategorije se učitavaju.",
+  },
+  en: {
+    categories: "Categories",
+    clothing: "Clothing",
+    collections: "Collections",
+    footwear: "Footwear",
+    viewAll: "View all",
+    viewAllCollections: "All products",
+    empty: "Loading categories.",
+  },
+} as const;
 
 export const CHAPTERS: Chapter[] = [
   {

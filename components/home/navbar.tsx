@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 
@@ -13,8 +13,15 @@ import { api } from "@/convex/_generated/api";
 import { localizeHref, stripLocale } from "@/lib/storefront-i18n";
 import logo from "@/public/logos/logo.png";
 
-import { BRAND_NAME, NAV_LINKS, UI_COPY } from "./content";
+import {
+  BRAND_NAME,
+  NAV_LINKS,
+  NAV_MENU_COPY,
+  UI_COPY,
+  type NavLinkItem,
+} from "./content";
 import { DropdownNavItem } from "./dropdown-nav-item";
+import { useNavMenu } from "./use-nav-menu";
 
 const NAVBAR_BACKGROUND_IMAGE =
   "linear-gradient(var(--navbar-bg), var(--navbar-bg))";
@@ -313,9 +320,18 @@ export function ProfileMenu({
   );
 }
 
+// Colours come from the unlayered `.nav-menu-*` classes in globals.css because
+// `a { color: inherit }` there outranks Tailwind's layered colour utilities.
+const MOBILE_CHIP_CLASS =
+  "nav-menu-link flex min-h-11 items-center rounded-[0.85rem] border border-[var(--border-soft)] bg-[rgba(var(--accent-rgb),0.03)] px-3 text-[0.7rem] font-semibold leading-tight transition active:scale-[0.97] active:border-[var(--accent)]";
+
+const MOBILE_VIEW_ALL_CLASS =
+  "nav-menu-strong flex min-h-11 items-center justify-between gap-2 rounded-[0.9rem] border border-[var(--border-strong)] bg-[rgba(var(--accent-rgb),0.07)] px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] transition active:scale-[0.98]";
+
 export function Navbar() {
   const { language } = useSettings();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isHomePath = stripLocale(pathname) === "/";
   const [isInsideStory, setIsInsideStory] = useState(isHomePath);
   const [storyTone, setStoryTone] = useState<"light" | "dark">("light");
@@ -329,10 +345,30 @@ export function Navbar() {
   const avatarHref = currentUser?.isAdmin ? "/admin" : authHref;
   const authLabel = isAuthenticated ? copy.profileCta : copy.loginCta;
   const convexEnabled = Boolean(process.env.NEXT_PUBLIC_CONVEX_URL);
+  const menuCopy = NAV_MENU_COPY[language];
+  const navMenu = useNavMenu(language);
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const burgerButtonRef = useRef<HTMLButtonElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const mobileSectionRefs = useRef(new Map<string, HTMLDivElement | null>());
+
+  const currentPath = stripLocale(pathname);
+  const activeGender = searchParams.get("gender");
+
+  const isLinkActive = (link: NavLinkItem) => {
+    const [path] = link.href.split("?");
+    if (stripLocale(path) !== currentPath) {
+      return false;
+    }
+    if (link.gender) {
+      return activeGender === link.gender;
+    }
+    if (link.menu === "collections") {
+      return !activeGender;
+    }
+    return true;
+  };
 
   const toggleAccordion = (href: string) => {
     setExpandedSection((prev) => (prev === href ? null : href));
@@ -353,6 +389,24 @@ export function Navbar() {
       document.body.style.overflow = "";
     };
   }, [drawerOpen]);
+
+  // Keep a freshly expanded accordion in view once its panel has grown.
+  useEffect(() => {
+    if (!expandedSection) {
+      return;
+    }
+
+    const element = mobileSectionRefs.current.get(expandedSection);
+    if (!element) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 240);
+
+    return () => window.clearTimeout(timer);
+  }, [expandedSection]);
 
   useEffect(() => {
     const handleStart = (event: Event) => {
@@ -622,7 +676,7 @@ export function Navbar() {
         />
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between">
           {/* Left Side: Logo and first 3 Navlinks */}
-          <div className="flex items-center gap-8 lg:gap-12">
+          <div className="flex items-center gap-6 lg:gap-5 xl:gap-12">
             <Link
               href={localizeHref("/", language)}
               scroll={false}
@@ -642,7 +696,7 @@ export function Navbar() {
 
             <nav
               aria-label={copy.desktopNavigation}
-              className="hidden items-center gap-2 lg:flex"
+              className="hidden items-center gap-0.5 lg:flex xl:gap-2"
             >
               {NAV_LINKS.slice(0, 3).map((link) =>
                 link.type === "simple" ? (
@@ -650,7 +704,12 @@ export function Navbar() {
                     key={link.href}
                     href={localizeHref(link.href, language)}
                     prefetch={false}
-                    className="nav-text inline-flex min-h-10 items-center px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
+                    aria-current={isLinkActive(link) ? "page" : undefined}
+                    className={`nav-text inline-flex min-h-10 items-center whitespace-nowrap px-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] xl:px-3 xl:text-[0.78rem] xl:tracking-[0.24em] ${
+                      isLinkActive(link)
+                        ? "text-[var(--text-primary)]"
+                        : "text-[var(--text-secondary)]"
+                    }`}
                   >
                     {link.label[language]}
                   </Link>
@@ -659,6 +718,8 @@ export function Navbar() {
                     key={link.href}
                     link={link}
                     language={language}
+                    isActive={isLinkActive(link)}
+                    {...navMenu.resolve(link)}
                   />
                 )
               )}
@@ -666,10 +727,10 @@ export function Navbar() {
           </div>
 
           {/* Right Side: Last 3 Navlinks and Actions */}
-          <div className="flex items-center gap-6 lg:gap-8">
+          <div className="flex items-center gap-6 lg:gap-3 xl:gap-8">
             <nav
               aria-label={copy.desktopNavigation}
-              className="hidden items-center gap-2 lg:flex"
+              className="hidden items-center gap-0.5 lg:flex xl:gap-2"
             >
               {NAV_LINKS.slice(3, 6).map((link) =>
                 link.type === "simple" ? (
@@ -677,7 +738,12 @@ export function Navbar() {
                     key={link.href}
                     href={localizeHref(link.href, language)}
                     prefetch={false}
-                    className="nav-text inline-flex min-h-10 items-center px-3 text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)]"
+                    aria-current={isLinkActive(link) ? "page" : undefined}
+                    className={`nav-text inline-flex min-h-10 items-center whitespace-nowrap px-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] transition hover:text-[var(--text-primary)] focus-visible:text-[var(--text-primary)] xl:px-3 xl:text-[0.78rem] xl:tracking-[0.24em] ${
+                      isLinkActive(link)
+                        ? "text-[var(--text-primary)]"
+                        : "text-[var(--text-secondary)]"
+                    }`}
                   >
                     {link.label[language]}
                   </Link>
@@ -686,6 +752,8 @@ export function Navbar() {
                     key={link.href}
                     link={link}
                     language={language}
+                    isActive={isLinkActive(link)}
+                    {...navMenu.resolve(link)}
                   />
                 )
               )}
@@ -818,10 +886,13 @@ export function Navbar() {
             variant="mobile"
           />
 
-          <nav aria-label={copy.mobileNavigation} className="flex flex-col gap-6">
+          <nav
+            aria-label={copy.mobileNavigation}
+            className="flex flex-col divide-y divide-[var(--border-soft)]"
+          >
             {NAV_LINKS.map((link, index) => {
               // Staggered slide/fade animation values
-              const delay = drawerOpen ? `${index * 60 + 100}ms` : "0ms";
+              const delay = drawerOpen ? `${index * 45 + 90}ms` : "0ms";
               const transitionStyle = {
                 transitionDelay: delay,
               };
@@ -832,6 +903,8 @@ export function Navbar() {
                   : "translate-x-12 opacity-0"
               }`;
 
+              const isActive = isLinkActive(link);
+
               if (link.type === "simple") {
                 return (
                   <div key={link.href} className={animateClass} style={transitionStyle}>
@@ -839,7 +912,10 @@ export function Navbar() {
                       href={localizeHref(link.href, language)}
                       prefetch={false}
                       onClick={closeDrawer}
-                      className="nav-text block py-2 text-[0.82rem] font-bold uppercase tracking-[0.24em] text-[var(--text-primary)] transition hover:text-[var(--accent)]"
+                      aria-current={isActive ? "page" : undefined}
+                      className={`flex min-h-12 items-center text-[0.82rem] font-bold uppercase tracking-[0.24em] transition ${
+                        isActive ? "nav-menu-strong" : "nav-menu-link"
+                      }`}
                     >
                       {link.label[language]}
                     </Link>
@@ -848,10 +924,14 @@ export function Navbar() {
               }
 
               const isExpanded = expandedSection === link.href;
+              const { columns, entries, kind } = navMenu.resolve(link);
 
               return (
                 <div
                   key={link.href}
+                  ref={(element) => {
+                    mobileSectionRefs.current.set(link.href, element);
+                  }}
                   className={`flex flex-col ${animateClass}`}
                   style={transitionStyle}
                 >
@@ -859,49 +939,121 @@ export function Navbar() {
                     type="button"
                     onClick={() => toggleAccordion(link.href)}
                     aria-expanded={isExpanded}
-                    className="flex w-full items-center justify-between py-2 text-[0.82rem] font-bold uppercase tracking-[0.24em] text-[var(--text-primary)] transition hover:text-[var(--accent)]"
+                    className={`flex min-h-12 w-full items-center justify-between gap-3 text-[0.82rem] font-bold uppercase tracking-[0.24em] transition ${
+                      isExpanded || isActive ? "nav-menu-strong" : "nav-menu-link"
+                    }`}
                   >
                     <span>{link.label[language]}</span>
-                    <svg
-                      viewBox="0 0 24 24"
-                      className={`h-4 w-4 text-[var(--text-secondary)] transition-transform duration-300 ${
-                        isExpanded ? "rotate-180" : ""
+                    <span
+                      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
+                        isExpanded
+                          ? "rotate-180 border-[var(--border-strong)] bg-[rgba(var(--accent-rgb),0.08)]"
+                          : "border-[var(--border-soft)]"
                       }`}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
                     >
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
                   </button>
 
                   <div
                     className={`grid transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                       isExpanded
-                        ? "grid-rows-[1fr] opacity-100 mt-2"
-                        : "grid-rows-[0fr] opacity-0 pointer-events-none"
+                        ? "mb-4 grid-rows-[1fr] opacity-100"
+                        : "pointer-events-none grid-rows-[0fr] opacity-0"
                     }`}
                   >
-                    <div className="overflow-hidden pl-3 border-l border-[var(--border-soft)] flex flex-col gap-3">
-                      {link.items?.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={localizeHref(item.href, language)}
-                          prefetch={false}
-                          aria-label={item.ariaLabel[language]}
-                          onClick={closeDrawer}
-                          className="group block rounded-[0.9rem] border border-[var(--border-soft)] bg-[rgba(var(--accent-rgb),0.02)] px-4 py-3 hover:border-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.06)] transition-all duration-300"
+                    <div className="flex flex-col gap-3 overflow-hidden">
+                      <Link
+                        href={localizeHref(link.href, language)}
+                        prefetch={false}
+                        onClick={closeDrawer}
+                        className={MOBILE_VIEW_ALL_CLASS}
+                      >
+                        <span>
+                          {kind === "categories"
+                            ? menuCopy.viewAll
+                            : menuCopy.viewAllCollections}
+                        </span>
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5 shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
                         >
-                          <p className="nav-text text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
-                            {item.label[language]}
+                          <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+
+                      {kind === "categories" ? (
+                        columns.length === 0 ? (
+                          <p className="text-xs font-semibold text-[var(--text-muted)]">
+                            {menuCopy.empty}
                           </p>
-                          <p className="story-subcopy mt-1 text-xs font-normal leading-relaxed text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
-                            {item.description[language]}
-                          </p>
-                        </Link>
-                      ))}
+                        ) : (
+                          columns.map((column) => (
+                            <div key={column.type}>
+                              <Link
+                                href={localizeHref(column.href, language)}
+                                prefetch={false}
+                                onClick={closeDrawer}
+                                className="nav-menu-title flex min-h-9 items-center justify-between gap-2 text-[0.62rem] font-bold uppercase tracking-[0.22em]"
+                              >
+                                <span>{menuCopy[column.type]}</span>
+                                <span className="tabular-nums opacity-70">
+                                  {column.items.length}
+                                </span>
+                              </Link>
+                              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                                {column.items.map((item) => (
+                                  <Link
+                                    key={item.slug}
+                                    href={localizeHref(item.href, language)}
+                                    prefetch={false}
+                                    onClick={closeDrawer}
+                                    className={MOBILE_CHIP_CLASS}
+                                  >
+                                    {item.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ))
+                        )
+                      ) : (
+                        entries.map((entry) => (
+                          <Link
+                            key={entry.slug}
+                            href={localizeHref(entry.href, language)}
+                            prefetch={false}
+                            onClick={closeDrawer}
+                            className="nav-menu-card block rounded-[0.9rem] border border-[var(--border-soft)] bg-[rgba(var(--accent-rgb),0.02)] px-4 py-3 transition active:scale-[0.99] active:border-[var(--accent)] active:bg-[rgba(var(--accent-rgb),0.06)]"
+                          >
+                            <p className="nav-menu-link text-[0.7rem] font-semibold uppercase tracking-[0.22em]">
+                              {entry.label}
+                            </p>
+                            {entry.description ? (
+                              <p className="story-subcopy mt-1 text-xs font-normal leading-relaxed text-[var(--text-muted)]">
+                                {entry.description}
+                              </p>
+                            ) : null}
+                          </Link>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>

@@ -130,6 +130,14 @@ export function slugify(value: string) {
     .replace(/(^-|-$)+/g, "");
 }
 
+export function normalizeCollectionSlug(name: string) {
+  const slug = slugify(name);
+  if (slug === "zimska-kolekcija") return "alpska-kapsula";
+  if (slug === "letnja-kolekcija") return "sunset-resort";
+  if (slug === "casual-kolekcija") return "after-dark";
+  return slug;
+}
+
 export function formatShopPrice(value: number) {
   return `${value.toLocaleString("sr-RS")} RSD`;
 }

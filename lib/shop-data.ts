@@ -10,6 +10,7 @@ import {
   type ShopCategory,
   type ShopCollection,
   type ShopProduct,
+  normalizeCollectionSlug,
   slugify,
   toBrandSlug,
 } from "@/lib/shop-taxonomy";
@@ -55,14 +56,6 @@ type RawProduct = {
   isRecommended?: boolean;
   recommendationOrder?: number;
 };
-
-function normalizeCollectionSlug(name: string) {
-  const slug = slugify(name);
-  if (slug === "zimska-kolekcija") return "alpska-kapsula";
-  if (slug === "letnja-kolekcija") return "sunset-resort";
-  if (slug === "casual-kolekcija") return "after-dark";
-  return slug;
-}
 
 function normalizeCollection(collection: RawCollection): ShopCollection {
   const slug = normalizeCollectionSlug(collection.name);

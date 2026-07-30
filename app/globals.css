@@ -787,6 +787,40 @@ button:focus-visible {
     0 8px 22px rgba(var(--shadow-rgb), 0.16);
 }
 
+/*
+ * Navigation menu panels (desktop dropdowns and the mobile drawer). These sit on
+ * a panel surface rather than over the page, so they take their colour straight
+ * from the theme tokens with no text halo. They must be declared unlayered like
+ * the `a { color: inherit }` rule above, otherwise that rule wins over any
+ * Tailwind text-colour utility applied to a link.
+ */
+.nav-menu-eyebrow {
+  color: var(--text-muted);
+}
+
+.nav-menu-title {
+  color: var(--text-muted);
+}
+
+.nav-menu-link {
+  color: var(--text-secondary);
+}
+
+.nav-menu-strong {
+  color: var(--text-primary);
+}
+
+.nav-menu-title:hover,
+.nav-menu-title:focus-visible,
+.nav-menu-link:hover,
+.nav-menu-link:focus-visible,
+.nav-menu-link:active,
+.nav-menu-card:hover .nav-menu-link,
+.nav-menu-card:focus-visible .nav-menu-link,
+.nav-menu-card:active .nav-menu-link {
+  color: var(--text-primary);
+}
+
 .story-cta {
   font-weight: 700;
   box-shadow:
