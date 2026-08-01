@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 
@@ -102,6 +103,7 @@ function hasDemoItems(items: CartItem[]) {
 export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
   const { language } = useSettings();
   const copy = LABELS[language];
+  const router = useRouter();
   const { items, subtotal, clearCart, reconcile } = useCart();
   const user = useQuery(api.auth.me);
   const createOrder = useMutation(api.orders.createStorefront);
@@ -198,6 +200,7 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
           setMessage("");
           try {
             let orderNumber = "DEMO";
+            let chargedTotal = subtotal;
             if (!isDemo) {
               const result = await createOrder({
                 ...Object.fromEntries(
@@ -219,10 +222,18 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
                 })),
               });
               orderNumber = result.orderNumber;
+              // Merodavan iznos dolazi sa servera — korpa je mogla da nosi
+              // zastarelu cenu iz localStorage-a.
+              chargedTotal = result.totalSale;
             }
             clearCart();
             setStatus("success");
             setMessage(`${copy.success} ${orderNumber}`);
+            router.push(
+              `${localizeHref("/checkout/uspeh", language)}?broj=${encodeURIComponent(
+                orderNumber,
+              )}&iznos=${encodeURIComponent(String(chargedTotal))}`,
+            );
           } catch (error) {
             setStatus("error");
             setMessage(error instanceof Error ? error.message : copy.error);
@@ -289,13 +300,21 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
         ) : null}
 
         {cartNotice && status !== "success" ? (
-          <p className="mt-5 rounded-xl border border-[var(--accent)]/30 p-4 text-sm font-semibold text-[var(--text-primary)]">
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-5 rounded-xl border border-[var(--accent)]/30 p-4 text-sm font-semibold text-[var(--text-primary)]"
+          >
             {cartNotice}
           </p>
         ) : null}
 
         {message ? (
-          <p className={`mt-5 rounded-xl border p-4 text-sm font-semibold ${status === "error" ? "border-red-500/30 text-red-700 dark:text-red-300" : "border-[var(--accent)]/30 text-[var(--text-primary)]"}`}>
+          <p
+            role={status === "error" ? "alert" : "status"}
+            aria-live={status === "error" ? "assertive" : "polite"}
+            className={`mt-5 rounded-xl border p-4 text-sm font-semibold ${status === "error" ? "border-red-500/30 text-red-700 dark:text-red-300" : "border-[var(--accent)]/30 text-[var(--text-primary)]"}`}
+          >
             {message}
           </p>
         ) : null}
@@ -317,7 +336,7 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
               <div className="aspect-[4/5] overflow-hidden rounded-xl bg-[var(--surface-soft)]">
                 {item.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+                  <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
                 ) : null}
               </div>
               <div className="min-w-0">

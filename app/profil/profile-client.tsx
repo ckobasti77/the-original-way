@@ -22,10 +22,12 @@ type ProfileValues = {
   deliveryNote: string;
 };
 
+type OrderStatus = "new" | "processing" | "sent" | "completed";
+
 type ProfileOrder = {
   _id: Id<"orders">;
   orderNumber: string;
-  status: string;
+  status: OrderStatus;
   createdAt: number;
   totalSale: number;
 };
@@ -52,6 +54,12 @@ const COPY = {
     saving: "Čuvamo...",
     saved: "Izmene su sačuvane.",
     orders: "Istorija porudžbina",
+    orderStatus: {
+      new: "Nova",
+      processing: "U obradi",
+      sent: "Poslata",
+      completed: "Završena",
+    },
     noOrders: "Još nema porudžbina.",
     logout: "Odjavi se",
   },
@@ -76,6 +84,12 @@ const COPY = {
     saving: "Saving...",
     saved: "Changes saved.",
     orders: "Order history",
+    orderStatus: {
+      new: "New",
+      processing: "Processing",
+      sent: "Shipped",
+      completed: "Completed",
+    },
     noOrders: "No orders yet.",
     logout: "Sign out",
   },
@@ -194,7 +208,11 @@ export function ProfileClient() {
         </div>
 
         {message ? (
-          <p className={`mt-5 rounded-xl border p-4 text-sm font-semibold ${status === "error" ? "border-red-500/30 text-red-700 dark:text-red-300" : "border-[var(--accent)]/30"}`}>
+          <p
+            role={status === "error" ? "alert" : "status"}
+            aria-live={status === "error" ? "assertive" : "polite"}
+            className={`mt-5 rounded-xl border p-4 text-sm font-semibold ${status === "error" ? "border-red-500/30 text-red-700 dark:text-red-300" : "border-[var(--accent)]/30"}`}
+          >
             {message}
           </p>
         ) : null}
@@ -212,7 +230,7 @@ export function ProfileClient() {
               <article key={order._id} className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-soft)] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <strong>{order.orderNumber}</strong>
-                  <span className="rounded-full border border-[var(--border-soft)] px-2 py-1 text-[0.65rem] uppercase tracking-wider">{order.status}</span>
+                  <span className="rounded-full border border-[var(--border-soft)] px-2 py-1 text-[0.65rem] uppercase tracking-wider">{copy.orderStatus[order.status] ?? order.status}</span>
                 </div>
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                   {new Intl.DateTimeFormat(language === "sr" ? "sr-RS" : "en-GB").format(order.createdAt)}

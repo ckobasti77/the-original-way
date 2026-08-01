@@ -1,5 +1,8 @@
+// Promena boje ivice je bila jedini znak fokusa — nedovoljno pri slabom vidu i
+// nevidljivo u forced-colors rezimu. Globalni ring iz globals.css pokriva samo
+// `a` i `button`, ne i polja forme.
 export const fieldClass =
-  "w-full rounded-md border border-black/12 bg-[#fbfcf8] px-3 py-2 text-sm font-semibold text-[#141816] outline-none placeholder:text-black/35 focus:border-[#276c56] focus:bg-white disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full rounded-md border border-black/12 bg-[#fbfcf8] px-3 py-2 text-sm font-semibold text-[#141816] outline-none placeholder:text-black/35 focus:border-[#276c56] focus:bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#276c56] disabled:cursor-not-allowed disabled:opacity-60";
 
 export const buttonClass =
   "rounded-md bg-[#141816] px-4 py-2 text-sm font-bold text-white hover:bg-[#276c56] disabled:cursor-not-allowed disabled:opacity-60";

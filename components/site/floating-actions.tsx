@@ -81,6 +81,10 @@ export function FloatingActions() {
         className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-[65] sm:left-5"
       >
         <div
+          id="floating-contact-menu"
+          // Zatvoren meni je samo providan; bez `inert` bi svi kontakt linkovi
+          // ostali u tab redosledu.
+          inert={!isOpen}
           className={`absolute bottom-full left-0 mb-3 grid w-[min(19rem,calc(100vw-2rem))] gap-2 transition ${
             isOpen ? "pointer-events-auto" : "pointer-events-none"
           }`}
@@ -141,6 +145,8 @@ export function FloatingActions() {
         type="button"
         aria-label={language === "sr" ? "Vrati se na vrh" : "Back to top"}
         onClick={scrollToTop}
+        // Nevidljivo dugme ne sme da bude fokusabilno.
+        inert={!showScrollTop}
         className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-[65] grid h-12 w-12 place-items-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[0_18px_42px_rgba(var(--shadow-rgb),0.18)] backdrop-blur-2xl transition duration-300 hover:-translate-y-0.5 hover:border-[var(--border-strong)] sm:right-5 ${
           showScrollTop
             ? "pointer-events-auto translate-y-0 opacity-100"

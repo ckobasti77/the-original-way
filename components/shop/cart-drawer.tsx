@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
 import { useSettings } from "@/components/settings-provider";
 import { localizeHref } from "@/lib/storefront-i18n";
@@ -58,6 +59,58 @@ export function CartDrawer() {
     updateQuantity,
   } = useCart();
 
+  const panelRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isCartOpen) {
+      // Vrati fokus na element koji je otvorio korpu (najcesce dugme u navbaru).
+      lastFocusedRef.current?.focus?.();
+      lastFocusedRef.current = null;
+      return;
+    }
+
+    lastFocusedRef.current = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        closeCart();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      // Zadrzi fokus unutar fioke dok je otvorena.
+      const panel = panelRef.current;
+      if (!panel) return;
+
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !panel.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [closeCart, isCartOpen]);
+
   return (
     <>
       <div
@@ -68,7 +121,13 @@ export function CartDrawer() {
         aria-hidden="true"
       />
       <aside
+        ref={panelRef}
         aria-label={copy.cart}
+        aria-modal={isCartOpen || undefined}
+        role="dialog"
+        // Zatvorena fioka je samo pomerena van ekrana, pa bi bez `inert` ostala
+        // u tab redosledu — korisnik tastature bi tabovao u nevidljiv sadrzaj.
+        inert={!isCartOpen}
         className={`fixed right-0 top-0 z-[80] flex h-dvh w-full max-w-[440px] flex-col border-l border-[var(--border-soft)] bg-[var(--surface-opaque)] text-[var(--text-primary)] shadow-[-24px_0_70px_rgba(var(--shadow-rgb),0.22)] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isCartOpen ? "translate-x-0" : "translate-x-full"
         }`}
@@ -82,8 +141,9 @@ export function CartDrawer() {
           </div>
           <button
             type="button"
+            ref={closeButtonRef}
             onClick={closeCart}
-            className="grid h-10 w-10 place-items-center rounded-full border border-[var(--border-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="tow-tap-target relative grid h-10 w-10 place-items-center rounded-full border border-[var(--border-soft)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             aria-label={copy.close}
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -145,7 +205,7 @@ export function CartDrawer() {
                       <button
                         type="button"
                         onClick={() => removeItem(item.lineId)}
-                        className="shrink-0 text-xs font-bold text-[var(--text-primary)]"
+                        className="tow-tap-target relative shrink-0 text-xs font-bold text-[var(--text-primary)]"
                       >
                         {copy.remove}
                       </button>
@@ -156,7 +216,7 @@ export function CartDrawer() {
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.lineId, item.quantity - 1)}
-                          className="h-9 w-9 text-lg font-semibold"
+                          className="tow-tap-target relative h-9 w-9 text-lg font-semibold"
                           aria-label={copy.decrease}
                         >
                           -
@@ -167,7 +227,7 @@ export function CartDrawer() {
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.lineId, item.quantity + 1)}
-                          className="h-9 w-9 text-lg font-semibold"
+                          className="tow-tap-target relative h-9 w-9 text-lg font-semibold"
                           aria-label={copy.increase}
                         >
                           +

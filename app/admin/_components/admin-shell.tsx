@@ -3,15 +3,38 @@
 import { useConvexAuth } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { logout } from "@/app/prijava/actions";
 import { adminNavItems } from "../_lib/constants";
+
+/**
+ * Sidebar je na lg+ uvek vidljiv, a ispod lg se izvlaci. `inert` se zato sme
+ * primeniti samo na uskim ekranima — inace bi ubio navigaciju tastaturom na
+ * desktopu, gde je meni otvoren bez obzira na `isMobileMenuOpen`.
+ */
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = (event: MediaQueryList | MediaQueryListEvent) => {
+      setIsDesktop(event.matches);
+    };
+
+    sync(media);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return isDesktop;
+}
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isDesktop = useIsDesktop();
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -56,9 +79,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <p className="mt-1 text-lg font-semibold leading-none">Admin</p>
         </div>
         <button
+          type="button"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-controls="admin-sidebar"
+          aria-expanded={isMobileMenuOpen}
           aria-label="Navigacioni meni"
-          className="cursor-pointer rounded-md border border-white/15 p-2 hover:bg-white/10 active:bg-white/20 focus:outline-none"
+          className="cursor-pointer rounded-md border border-white/15 p-2 hover:bg-white/10 active:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -73,6 +99,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       {isMobileMenuOpen ? (
         <div
+          aria-hidden="true"
           onClick={() => setIsMobileMenuOpen(false)}
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 lg:hidden"
         />
@@ -80,6 +107,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       <div className="min-h-screen lg:pl-72">
         <aside
+          id="admin-sidebar"
+          inert={!isDesktop && !isMobileMenuOpen}
           className={`fixed inset-y-0 left-0 z-50 w-72 transform border-black/10 bg-[#111513] text-white transition-transform duration-300 ease-in-out lg:border-r lg:translate-x-0 ${
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
@@ -90,7 +119,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/50">
                   The Original Way
                 </p>
-                <h1 className="mt-3 text-3xl font-semibold leading-none">Admin</h1>
+                <p className="mt-3 text-3xl font-semibold leading-none">Admin</p>
               </div>
               <div className="flex items-center gap-2">
                 <Link
@@ -116,9 +145,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   Sajt
                 </Link>
                 <button
+                  type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
                   aria-label="Zatvori meni"
-                  className="cursor-pointer rounded-md border border-white/15 p-2 hover:bg-white/10 focus:outline-none lg:hidden"
+                  className="cursor-pointer rounded-md border border-white/15 p-2 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path

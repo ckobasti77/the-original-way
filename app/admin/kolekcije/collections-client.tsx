@@ -17,6 +17,7 @@ import {
   secondaryButtonClass,
   SectionHeader,
 } from "../_components/admin-ui";
+import { useConfirmDialog } from "../_components/confirm-dialog";
 
 type ProductRecord = {
   _id: Id<"products">;
@@ -81,6 +82,7 @@ function CollectionsConvex() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
 
   async function uploadImage(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -344,7 +346,7 @@ function CollectionsConvex() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={collection.imageUrl}
-                        alt=""
+                        alt={collection.name}
                         className="h-16 w-16 shrink-0 rounded-md border border-black/10 object-cover"
                       />
                     ) : (
@@ -383,7 +385,15 @@ function CollectionsConvex() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void deleteCollection(collection._id)}
+                      onClick={() =>
+                          confirm({
+                            title: "Obrisati kolekciju?",
+                            body: `{collection.name} — Kolekcija se trajno brise. Proizvodi ostaju u katalogu.`,
+                            confirmLabel: "Obrisi",
+                            tone: "danger",
+                            onConfirm: () => deleteCollection(collection._id),
+                          })
+                        }
                       className="rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed]"
                     >
                       Obrisi
@@ -395,6 +405,8 @@ function CollectionsConvex() {
           </div>
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }

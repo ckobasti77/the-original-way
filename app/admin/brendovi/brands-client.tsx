@@ -17,6 +17,7 @@ import {
   secondaryButtonClass,
   SectionHeader,
 } from "../_components/admin-ui";
+import { useConfirmDialog } from "../_components/confirm-dialog";
 
 type BrandRecord = {
   _id: Id<"brands">;
@@ -69,6 +70,7 @@ function BrandsConvex() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
 
   async function uploadLogo(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -304,7 +306,15 @@ function BrandsConvex() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void deleteBrand(brand._id)}
+                      onClick={() =>
+                          confirm({
+                            title: "Obrisati brend?",
+                            body: `{brand.name} — Brend se trajno brise, a svim proizvodima tog brenda se uklanja veza.`,
+                            confirmLabel: "Obrisi",
+                            tone: "danger",
+                            onConfirm: () => deleteBrand(brand._id),
+                          })
+                        }
                       className="w-full rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed]"
                     >
                       Obriši
@@ -316,6 +326,8 @@ function BrandsConvex() {
           </div>
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }

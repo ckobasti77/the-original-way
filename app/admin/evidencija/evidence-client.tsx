@@ -26,6 +26,7 @@ import {
   secondaryButtonClass,
   SectionHeader,
 } from "../_components/admin-ui";
+import { useConfirmDialog } from "../_components/confirm-dialog";
 
 type ProductRecord = {
   _id: Id<"products">;
@@ -112,6 +113,7 @@ function EvidenceConvex() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [shippingError, setShippingError] = useState("");
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
   const [isPending, startTransition] = useTransition();
 
   const selectedProduct = products?.find(
@@ -241,6 +243,30 @@ function EvidenceConvex() {
           adminErrorMessage(error, "Slanje emaila kupcu nije uspelo."),
         );
       }
+    });
+  }
+
+  function requestStatusChange(order: OrderRecord, status: OrderStatus) {
+    if (status === order.status) {
+      return;
+    }
+
+    // "sent" ionako otvara modal za broj posiljke, a "new" ne salje email.
+    if (status === "sent" || status === "new") {
+      void changeStatus(order, status);
+      return;
+    }
+
+    const label =
+      orderStatuses.find((item) => item.value === status)?.label ?? status;
+
+    confirm({
+      title: `Promeniti status na "${label}"?`,
+      body: order.email
+        ? `Porudzbina ${order.orderNumber}. Kupcu (${order.email}) se odmah salje email o promeni statusa. Ova akcija se ne moze ponistiti.`
+        : `Porudzbina ${order.orderNumber}. Kupac nema email pa obavestenje nece biti poslato.`,
+      confirmLabel: "Promeni status",
+      onConfirm: () => changeStatus(order, status),
     });
   }
 
@@ -631,7 +657,7 @@ function EvidenceConvex() {
                               <select
                                 value={order.status}
                                 onChange={(event) =>
-                                  void changeStatus(
+                                  requestStatusChange(
                                     order,
                                     event.target.value as OrderStatus,
                                   )
@@ -734,7 +760,7 @@ function EvidenceConvex() {
                         <select
                           value={order.status}
                           onChange={(event) =>
-                            void changeStatus(
+                            requestStatusChange(
                               order,
                               event.target.value as OrderStatus,
                             )
@@ -813,6 +839,8 @@ function EvidenceConvex() {
           </form>
         </div>
       ) : null}
+
+      {dialog}
     </div>
   );
 }

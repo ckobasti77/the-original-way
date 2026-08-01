@@ -221,6 +221,22 @@
   color: var(--text-muted);
 }
 
+/*
+  Prosiruje POVRSINU ZA DODIR na preporucenih 44x44px bez menjanja vizuelne
+  velicine kontrole. Koristi se na sitnim dugmadima u korpi (steperi kolicine,
+  "Ukloni", zatvaranje) — izgled ostaje identican, samo je lakse pogoditi.
+  Element mora imati `position: relative`.
+*/
+.tow-tap-target::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
 .store-field {
   display: grid;
   gap: 0.5rem;
@@ -775,6 +791,12 @@ button:focus-visible {
 .story-subcopy {
   color: color-mix(in srgb, var(--text-primary) 82%, var(--text-secondary));
   font-weight: 600;
+  /*
+    Sprecava usamljenu rec u poslednjem redu pasusa u staklenim panelima.
+    Naslov vec koristi `balance`; ovde je `pretty` jer ne menja visinu bloka.
+    Raspored, velicine, boje i razmaci ostaju netaknuti.
+  */
+  text-wrap: pretty;
   text-shadow:
     0 1px 0 var(--text-halo),
     0 7px 20px rgba(var(--shadow-rgb), 0.2);

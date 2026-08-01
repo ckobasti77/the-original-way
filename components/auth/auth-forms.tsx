@@ -50,7 +50,11 @@ function FormAlert({
   }
 
   return (
-    <div className="rounded-[1.25rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-3 text-sm text-[var(--text-primary)]">
+    <div
+      role="alert"
+      aria-live="assertive"
+      className="rounded-[1.25rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-3 text-sm text-[var(--text-primary)]"
+    >
       {message ? <p className="font-semibold leading-6">{message}</p> : null}
       {errors.length > 0 ? (
         <ul className={cn("mt-2 space-y-1 text-sm", message ? "text-[var(--text-secondary)]" : "text-[var(--text-primary)]")}>

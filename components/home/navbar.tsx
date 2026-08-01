@@ -842,6 +842,10 @@ export function Navbar() {
       <div
         ref={sidebarRef}
         id="mobile-navigation"
+        // Zatvorena fioka je samo pomerena van ekrana i eksplicitno ima
+        // `pointer-events-auto`, pa bi bez `inert` ostala u tab redosledu.
+        // Na lg+ je `display:none`, tako da je atribut tamo bez efekta.
+        inert={!drawerOpen}
         className={`fixed right-0 top-0 bottom-0 z-50 flex h-[100dvh] w-full max-w-[min(92vw,420px)] flex-col overflow-x-hidden border-l border-[var(--border-soft)] bg-gradient-to-b from-[var(--surface-elevated)] to-[var(--surface-opaque)] backdrop-blur-[32px] shadow-[-25px_0_60px_rgba(var(--shadow-rgb),0.18)] transition-transform duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto lg:hidden ${
           drawerOpen ? "translate-x-0" : "translate-x-full"
         }`}

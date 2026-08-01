@@ -26,6 +26,7 @@ import {
   secondaryButtonClass,
   SectionHeader,
 } from "../_components/admin-ui";
+import { useConfirmDialog } from "../_components/confirm-dialog";
 
 type ProductRecord = {
   _id: Id<"products">;
@@ -126,9 +127,12 @@ function ProductsConvex() {
   const ensureDefaultCategories = useMutation(api.categories.ensureDefaults);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
   const [message, setMessage] = useState("");
   const ensuredDefaults = useRef(false);
 
@@ -305,6 +309,11 @@ function ProductsConvex() {
           : String(product.recommendationOrder),
     });
     setMessage("");
+
+    // Forma je levo, lista desno. Bez ovoga klik na "Edit" kod dvadesetog
+    // proizvoda izgleda kao da nista nije uradio.
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => nameInputRef.current?.focus(), 350);
   }
 
   return (
@@ -317,6 +326,7 @@ function ProductsConvex() {
 
       <div className="grid gap-5 xl:grid-cols-[28rem_minmax(0,1fr)]">
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="rounded-lg border border-black/10 bg-white p-4"
         >
@@ -338,6 +348,7 @@ function ProductsConvex() {
           <div className="mt-4 grid gap-3">
             <FieldLabel label="Naziv">
               <input
+                ref={nameInputRef}
                 value={form.name}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, name: event.target.value }))
@@ -703,7 +714,15 @@ function ProductsConvex() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => void deleteProduct(product._id)}
+                                onClick={() =>
+                          confirm({
+                            title: "Obrisati proizvod?",
+                            body: `{product.name} — Proizvod se trajno brise i uklanja iz svih kolekcija koje ga sadrze.`,
+                            confirmLabel: "Obrisi",
+                            tone: "danger",
+                            onConfirm: () => deleteProduct(product._id),
+                          })
+                        }
                                 className="rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed]"
                               >
                                 Obrisi
@@ -815,7 +834,15 @@ function ProductsConvex() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => void deleteProduct(product._id)}
+                        onClick={() =>
+                          confirm({
+                            title: "Obrisati proizvod?",
+                            body: `{product.name} — Proizvod se trajno brise i uklanja iz svih kolekcija koje ga sadrze.`,
+                            confirmLabel: "Obrisi",
+                            tone: "danger",
+                            onConfirm: () => deleteProduct(product._id),
+                          })
+                        }
                         className="rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed] flex-1 text-center"
                       >
                         Obrisi
@@ -828,6 +855,8 @@ function ProductsConvex() {
           ) : null}
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }

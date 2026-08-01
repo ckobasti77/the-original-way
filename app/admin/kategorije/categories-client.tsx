@@ -19,6 +19,7 @@ import {
   secondaryButtonClass,
   SectionHeader,
 } from "../_components/admin-ui";
+import { useConfirmDialog } from "../_components/confirm-dialog";
 
 type CategoryRecord = {
   _id: Id<"categories">;
@@ -84,6 +85,7 @@ function CategoriesConvex() {
   const [form, setForm] = useState<CategoryForm>(emptyForm);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
   const ensuredDefaults = useRef(false);
 
   useEffect(() => {
@@ -199,7 +201,15 @@ function CategoriesConvex() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void deleteCategory(category._id)}
+                  onClick={() =>
+                          confirm({
+                            title: "Obrisati kategoriju?",
+                            body: `{category.name} — Kategorija se trajno brise, a svim proizvodima u njoj se uklanja kategorija.`,
+                            confirmLabel: "Obrisi",
+                            tone: "danger",
+                            onConfirm: () => deleteCategory(category._id),
+                          })
+                        }
                   className="rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed]"
                 >
                   Obrisi
@@ -359,6 +369,8 @@ function CategoriesConvex() {
           ) : null}
         </div>
       </div>
+
+      {dialog}
     </div>
   );
 }
