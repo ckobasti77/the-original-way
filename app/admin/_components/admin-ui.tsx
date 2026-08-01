@@ -11,6 +11,31 @@ export function formatCurrency(value: number) {
   return `${value.toLocaleString("sr-RS")} RSD`;
 }
 
+/**
+ * Pretvara gresku iz Convex mutacije u poruku za admina. ConvexError nosi
+ * `data` objekat (npr. `{ code: "FORBIDDEN" }`), dok obicne greske nose poruku.
+ */
+export function adminErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "data" in error) {
+    const data = (error as { data: unknown }).data;
+    if (data && typeof data === "object" && "code" in data) {
+      const code = (data as { code: unknown }).code;
+      if (code === "FORBIDDEN") {
+        return "Nemas dozvolu za ovu akciju. Prijavi se kao admin.";
+      }
+    }
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export function SectionHeader({
   eyebrow,
   title,

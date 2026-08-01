@@ -175,6 +175,16 @@ export const createStorefront = mutation({
   returns: v.object({
     orderId: v.id("orders"),
     orderNumber: v.string(),
+    totalSale: v.number(),
+    items: v.array(
+      v.object({
+        productId: v.id("products"),
+        productName: v.string(),
+        size: v.string(),
+        quantity: v.number(),
+        salePrice: v.number(),
+      }),
+    ),
   }),
   handler: async (ctx, args) => {
     if (args.items.length === 0 || args.items.length > 50) {
@@ -196,8 +206,22 @@ export const createStorefront = mutation({
         throw new Error("Količina nije ispravna.");
       }
       const quantity = Math.min(20, Math.max(1, Math.round(input.quantity)));
-      const size = safeTrim(input.size).replace(/\s+/g, " ");
-      if (!size || size.length > 30) throw new Error("Veličina nije ispravna.");
+      const requestedSize = safeTrim(input.size).replace(/\s+/g, " ");
+      if (!requestedSize || requestedSize.length > 30) {
+        throw new Error("Veličina nije ispravna.");
+      }
+      // Korpa se čuva u localStorage neograničeno, pa veličina može da bude
+      // zastarela ako je admin u međuvremenu ukloni sa proizvoda.
+      const size =
+        product.sizes.find(
+          (available) =>
+            available.trim().toLowerCase() === requestedSize.toLowerCase(),
+        ) ?? null;
+      if (!size) {
+        throw new Error(
+          `Veličina "${requestedSize}" više nije dostupna za proizvod "${product.name}".`,
+        );
+      }
       totalCost += product.costPrice * quantity;
       totalSale += product.salePrice * quantity;
       items.push({
@@ -246,7 +270,18 @@ export const createStorefront = mutation({
       });
     }
 
-    return { orderId, orderNumber };
+    return {
+      orderId,
+      orderNumber,
+      totalSale,
+      items: items.map((item) => ({
+        productId: item.productId,
+        productName: item.productName,
+        size: item.size,
+        quantity: item.quantity,
+        salePrice: item.salePrice,
+      })),
+    };
   },
 });
 

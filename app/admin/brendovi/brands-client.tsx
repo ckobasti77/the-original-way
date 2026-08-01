@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 import {
+  adminErrorMessage,
   buttonClass,
   ConvexSetupNotice,
   EmptyState,
@@ -67,6 +68,7 @@ function BrandsConvex() {
   const [form, setForm] = useState<BrandForm>(emptyForm);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   async function uploadLogo(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -114,15 +116,33 @@ function BrandsConvex() {
       return;
     }
 
-    await upsertBrand({
-      id: form.id,
-      name: form.name.trim(),
-      logoStorageId: form.logoStorageId,
-      externalLogoUrl: form.externalLogoUrl.trim() || undefined,
-    });
+    setSaving(true);
+    try {
+      await upsertBrand({
+        id: form.id,
+        name: form.name.trim(),
+        logoStorageId: form.logoStorageId,
+        externalLogoUrl: form.externalLogoUrl.trim() || undefined,
+      });
 
-    setForm(emptyForm);
-    setMessage(form.id ? "Brend je izmenjen." : "Brend je dodat.");
+      setForm(emptyForm);
+      setMessage(form.id ? "Brend je izmenjen." : "Brend je dodat.");
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Cuvanje brenda nije uspelo."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteBrand(id: Id<"brands">) {
+    setMessage("");
+    try {
+      await removeBrand({ id });
+      setMessage("Brend je obrisan.");
+      setForm((current) => (current.id === id ? emptyForm : current));
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Brisanje brenda nije uspelo."));
+    }
   }
 
   function editBrand(brand: BrandRecord) {
@@ -232,9 +252,13 @@ function BrandsConvex() {
               />
             </FieldLabel>
 
-            {message ? <p className="text-sm font-bold text-[#276c56]">{message}</p> : null}
+            {message ? (
+              <p className="text-sm font-bold text-[#276c56]" role="status" aria-live="polite">
+                {message}
+              </p>
+            ) : null}
 
-            <button className={buttonClass}>
+            <button className={buttonClass} disabled={saving || uploading}>
               {form.id ? "Sačuvaj brend" : "Dodaj brend"}
             </button>
           </div>
@@ -280,7 +304,7 @@ function BrandsConvex() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void removeBrand({ id: brand._id })}
+                      onClick={() => void deleteBrand(brand._id)}
                       className="w-full rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed]"
                     >
                       Obriši

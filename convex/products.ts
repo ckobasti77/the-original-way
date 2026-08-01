@@ -89,6 +89,38 @@ export const listAdmin = query({
   },
 });
 
+/**
+ * Lagana provera aktuelnog stanja za stavke u korpi. Korpa se čuva u
+ * localStorage neograničeno, pa snimljena cena i veličina mogu da zastare.
+ * Vraća samo ono što je potrebno za usklađivanje — nikad `costPrice`.
+ */
+export const availability = query({
+  args: {
+    productIds: v.array(v.id("products")),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("products"),
+      name: v.string(),
+      salePrice: v.number(),
+      sizes: v.array(v.string()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const uniqueIds = [...new Set(args.productIds)].slice(0, 50);
+    const products = await Promise.all(uniqueIds.map((id) => ctx.db.get(id)));
+
+    return products
+      .filter((product) => product !== null)
+      .map((product) => ({
+        _id: product._id,
+        name: product.name,
+        salePrice: product.salePrice,
+        sizes: product.sizes,
+      }));
+  },
+});
+
 export const listRecommended = query({
   args: {
     limit: v.optional(v.number()),

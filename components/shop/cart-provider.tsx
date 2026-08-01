@@ -24,6 +24,50 @@ export type CartItem = CartItemInput & {
   lineId: string;
 };
 
+export type CartAvailability = {
+  _id: string;
+  name: string;
+  salePrice: number;
+  sizes: string[];
+};
+
+export type CartReconciliation = {
+  repriced: string[];
+  removed: string[];
+};
+
+function sizeStillOffered(item: CartItem, product: CartAvailability) {
+  return product.sizes.some(
+    (size) => size.trim().toLowerCase() === item.size.trim().toLowerCase(),
+  );
+}
+
+/**
+ * Uporedjuje snimljenu korpu sa aktuelnim stanjem proizvoda. Cista funkcija —
+ * koristi je i provider (za izmenu) i potrosac (za poruku korisniku).
+ */
+export function diffCartAgainst(
+  items: CartItem[],
+  available: CartAvailability[],
+): CartReconciliation {
+  const byId = new Map(available.map((product) => [product._id, product]));
+  const repriced: string[] = [];
+  const removed: string[] = [];
+
+  for (const item of items) {
+    const product = byId.get(item.productId);
+    if (!product || !sizeStillOffered(item, product)) {
+      removed.push(product ? `${item.name} (${item.size})` : item.name);
+      continue;
+    }
+    if (product.salePrice !== item.price) {
+      repriced.push(item.name);
+    }
+  }
+
+  return { repriced, removed };
+}
+
 type CartContextValue = {
   addItem: (item: CartItemInput) => void;
   clearCart: () => void;
@@ -32,6 +76,7 @@ type CartContextValue = {
   itemCount: number;
   items: CartItem[];
   openCart: () => void;
+  reconcile: (available: CartAvailability[]) => void;
   removeItem: (lineId: string) => void;
   subtotal: number;
   updateQuantity: (lineId: string, quantity: number) => void;
@@ -119,6 +164,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
   }, []);
 
+  // Usklađuje snimljene cene i veličine sa aktuelnim stanjem iz baze.
+  // Stabilna referenca (prazne zavisnosti) da pozivalac može da je drži u dep nizu.
+  const reconcile = useCallback((available: CartAvailability[]) => {
+    const byId = new Map(available.map((product) => [product._id, product]));
+
+    setItems((current) => {
+      const { repriced, removed } = diffCartAgainst(current, available);
+      if (repriced.length === 0 && removed.length === 0) {
+        return current;
+      }
+
+      return current.flatMap((item) => {
+        const product = byId.get(item.productId);
+        if (!product || !sizeStillOffered(item, product)) return [];
+        return product.salePrice === item.price
+          ? [item]
+          : [{ ...item, price: product.salePrice }];
+      });
+    });
+  }, []);
+
   const value = useMemo<CartContextValue>(() => {
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = items.reduce(
@@ -134,11 +200,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       itemCount,
       items,
       openCart: () => setIsCartOpen(true),
+      reconcile,
       removeItem,
       subtotal,
       updateQuantity,
     };
-  }, [addItem, clearCart, isCartOpen, items, removeItem, updateQuantity]);
+  }, [
+    addItem,
+    clearCart,
+    isCartOpen,
+    items,
+    reconcile,
+    removeItem,
+    updateQuantity,
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

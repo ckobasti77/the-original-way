@@ -10,7 +10,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { localizeHref } from "@/lib/storefront-i18n";
 import { formatShopPrice } from "@/lib/shop-taxonomy";
 
-import { type CartItem, useCart } from "./cart-provider";
+import { type CartItem, diffCartAgainst, useCart } from "./cart-provider";
 
 type CheckoutValues = {
   firstName: string;
@@ -63,6 +63,8 @@ const LABELS = {
     total: "Ukupno",
     error: "Porudžbina trenutno ne može da se pošalje.",
     success: "Porudžbina je uspešno poslata.",
+    repriced: "Cena je u međuvremenu izmenjena i korpa je ažurirana:",
+    removed: "Ovi artikli više nisu dostupni i uklonjeni su iz korpe:",
   },
   en: {
     empty: "Your cart is empty",
@@ -88,6 +90,8 @@ const LABELS = {
     total: "Total",
     error: "The order could not be sent right now.",
     success: "Your order has been sent.",
+    repriced: "Pricing changed in the meantime and your cart was updated:",
+    removed: "These items are no longer available and were removed from your cart:",
   },
 } as const;
 
@@ -98,14 +102,43 @@ function hasDemoItems(items: CartItem[]) {
 export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
   const { language } = useSettings();
   const copy = LABELS[language];
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, reconcile } = useCart();
   const user = useQuery(api.auth.me);
   const createOrder = useMutation(api.orders.createStorefront);
   const [values, setValues] = useState(EMPTY_VALUES);
   const [saveToProfile, setSaveToProfile] = useState(true);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [cartNotice, setCartNotice] = useState("");
   const prefilledUser = useRef<string | null>(null);
+
+  // Korpa živi u localStorage neograničeno, pa se cene i veličine proveravaju
+  // uz aktuelno stanje pre nego što kupac potvrdi iznos.
+  const realProductIds = items
+    .filter((item) => !item.productId.startsWith("demo-"))
+    .map((item) => item.productId as Id<"products">);
+  const availability = useQuery(
+    api.products.availability,
+    convexEnabled && realProductIds.length > 0 ? { productIds: realProductIds } : "skip",
+  );
+  const reconciledSignature = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!availability || status === "success") return;
+    const signature = availability
+      .map((product) => `${product._id}:${product.salePrice}:${product.sizes.join("|")}`)
+      .join(",");
+    if (reconciledSignature.current === signature) return;
+    reconciledSignature.current = signature;
+
+    const { repriced, removed } = diffCartAgainst(items, availability);
+    reconcile(availability);
+
+    const notices: string[] = [];
+    if (removed.length > 0) notices.push(`${copy.removed} ${removed.join(", ")}`);
+    if (repriced.length > 0) notices.push(`${copy.repriced} ${repriced.join(", ")}`);
+    setCartNotice(notices.join(" "));
+  }, [availability, copy.removed, copy.repriced, items, reconcile, status]);
 
   useEffect(() => {
     if (!user || prefilledUser.current === user._id) return;
@@ -142,7 +175,10 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
     );
   }
 
-  const isDemo = !convexEnabled || hasDemoItems(items);
+  // Demo stavke su lokalni katalog bez zapisa u bazi — njih je ispravno "poslati"
+  // bez mutacije. Nedostupan Convex je, međutim, kvar: nikad ne sme da se prijavi
+  // uspeh niti da se isprazni korpa, jer porudžbina ne bi bila nigde sačuvana.
+  const isDemo = hasDemoItems(items);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
@@ -150,6 +186,14 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
         className="premium-panel p-5 md:p-8"
         onSubmit={async (event) => {
           event.preventDefault();
+          if (status === "submitting" || status === "success") {
+            return;
+          }
+          if (!isDemo && !convexEnabled) {
+            setStatus("error");
+            setMessage(copy.error);
+            return;
+          }
           setStatus("submitting");
           setMessage("");
           try {
@@ -244,13 +288,23 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
           </label>
         ) : null}
 
+        {cartNotice && status !== "success" ? (
+          <p className="mt-5 rounded-xl border border-[var(--accent)]/30 p-4 text-sm font-semibold text-[var(--text-primary)]">
+            {cartNotice}
+          </p>
+        ) : null}
+
         {message ? (
           <p className={`mt-5 rounded-xl border p-4 text-sm font-semibold ${status === "error" ? "border-red-500/30 text-red-700 dark:text-red-300" : "border-[var(--accent)]/30 text-[var(--text-primary)]"}`}>
             {message}
           </p>
         ) : null}
 
-        <button className="store-button-primary mt-6 w-full" disabled={status === "submitting"} type="submit">
+        <button
+          className="store-button-primary mt-6 w-full"
+          disabled={status === "submitting" || status === "success"}
+          type="submit"
+        >
           {status === "submitting" ? copy.submitting : copy.submit}
         </button>
       </form>

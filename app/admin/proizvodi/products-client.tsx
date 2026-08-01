@@ -15,6 +15,7 @@ import {
 } from "../_lib/constants";
 import type { ProductGender, ProductType } from "../_lib/types";
 import {
+  adminErrorMessage,
   buttonClass,
   ConvexSetupNotice,
   EmptyState,
@@ -127,7 +128,9 @@ function ProductsConvex() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const ensuredDefaults = useRef(false);
 
   const availableSizes = useMemo(
     () => (form.type === "clothing" ? clothingSizes : nikeShoeSizesEu),
@@ -135,9 +138,15 @@ function ProductsConvex() {
   );
 
   useEffect(() => {
-    if (categories && categories.length === 0) {
-      void ensureDefaultCategories({});
+    // `categories` je zivi Convex query — identitet niza se menja pri svakom
+    // pushu. Bez sentinela bi neuspela mutacija okidala efekat u petlji.
+    if (!categories || categories.length > 0 || ensuredDefaults.current) {
+      return;
     }
+    ensuredDefaults.current = true;
+    void ensureDefaultCategories({}).catch((error: unknown) => {
+      setMessage(adminErrorMessage(error, "Podrazumevane kategorije nisu kreirane."));
+    });
   }, [categories, ensureDefaultCategories]);
 
   const availableCategories = useMemo(() => {
@@ -233,28 +242,46 @@ function ProductsConvex() {
       return;
     }
 
-    await upsertProduct({
-      id: form.id,
-      name: form.name.trim(),
-      description: form.description.trim(),
-      type: form.type,
-      gender: form.gender,
-      categorySlug: form.categorySlug,
-      costPrice,
-      salePrice,
-      sizes: form.sizes,
-      imageStorageIds: form.imageStorageIds,
-      externalImageUrls: form.externalImageUrls
-        .split(",")
-        .map((url) => url.trim())
-        .filter(Boolean),
-      brandId: form.brandId || undefined,
-      isRecommended: form.isRecommended,
-      recommendationOrder,
-    });
+    setSaving(true);
+    try {
+      await upsertProduct({
+        id: form.id,
+        name: form.name.trim(),
+        description: form.description.trim(),
+        type: form.type,
+        gender: form.gender,
+        categorySlug: form.categorySlug,
+        costPrice,
+        salePrice,
+        sizes: form.sizes,
+        imageStorageIds: form.imageStorageIds,
+        externalImageUrls: form.externalImageUrls
+          .split(",")
+          .map((url) => url.trim())
+          .filter(Boolean),
+        brandId: form.brandId || undefined,
+        isRecommended: form.isRecommended,
+        recommendationOrder,
+      });
 
-    setForm(emptyForm);
-    setMessage(form.id ? "Proizvod je izmenjen." : "Proizvod je dodat.");
+      setForm(emptyForm);
+      setMessage(form.id ? "Proizvod je izmenjen." : "Proizvod je dodat.");
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Cuvanje proizvoda nije uspelo."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteProduct(id: Id<"products">) {
+    setMessage("");
+    try {
+      await removeProduct({ id });
+      setMessage("Proizvod je obrisan.");
+      setForm((current) => (current.id === id ? emptyForm : current));
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Brisanje proizvoda nije uspelo."));
+    }
   }
 
   function editProduct(product: ProductRecord) {
@@ -565,10 +592,18 @@ function ProductsConvex() {
               </div>
             </div>
 
-            {message ? <p className="text-sm font-bold text-[#276c56]">{message}</p> : null}
+            {message ? (
+              <p className="text-sm font-bold text-[#276c56]" role="status" aria-live="polite">
+                {message}
+              </p>
+            ) : null}
 
-            <button className={buttonClass}>
-              {form.id ? "Sacuvaj izmene" : "Dodaj proizvod"}
+            <button className={buttonClass} disabled={saving || uploading}>
+              {saving
+                ? "Cuvanje..."
+                : form.id
+                  ? "Sacuvaj izmene"
+                  : "Dodaj proizvod"}
             </button>
           </div>
         </form>
@@ -668,7 +703,7 @@ function ProductsConvex() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => void removeProduct({ id: product._id })}
+                                onClick={() => void deleteProduct(product._id)}
                                 className="rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed]"
                               >
                                 Obrisi
@@ -780,7 +815,7 @@ function ProductsConvex() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => void removeProduct({ id: product._id })}
+                        onClick={() => void deleteProduct(product._id)}
                         className="rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed] flex-1 text-center"
                       >
                         Obrisi

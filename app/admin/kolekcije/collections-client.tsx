@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 import {
+  adminErrorMessage,
   buttonClass,
   ConvexSetupNotice,
   EmptyState,
@@ -79,6 +80,7 @@ function CollectionsConvex() {
   const [form, setForm] = useState<CollectionForm>(emptyForm);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   async function uploadImage(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -135,16 +137,34 @@ function CollectionsConvex() {
       return;
     }
 
-    await upsertCollection({
-      id: form.id,
-      name: form.name.trim(),
-      imageStorageId: form.imageStorageId,
-      externalImageUrl: form.externalImageUrl.trim() || undefined,
-      productIds: form.productIds,
-    });
+    setSaving(true);
+    try {
+      await upsertCollection({
+        id: form.id,
+        name: form.name.trim(),
+        imageStorageId: form.imageStorageId,
+        externalImageUrl: form.externalImageUrl.trim() || undefined,
+        productIds: form.productIds,
+      });
 
-    setForm(emptyForm);
-    setMessage(form.id ? "Kolekcija je izmenjena." : "Kolekcija je dodata.");
+      setForm(emptyForm);
+      setMessage(form.id ? "Kolekcija je izmenjena." : "Kolekcija je dodata.");
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Cuvanje kolekcije nije uspelo."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteCollection(id: Id<"collections">) {
+    setMessage("");
+    try {
+      await removeCollection({ id });
+      setMessage("Kolekcija je obrisana.");
+      setForm((current) => (current.id === id ? emptyForm : current));
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Brisanje kolekcije nije uspelo."));
+    }
   }
 
   function editCollection(collection: CollectionRecord) {
@@ -290,9 +310,13 @@ function CollectionsConvex() {
               </div>
             </div>
 
-            {message ? <p className="text-sm font-bold text-[#276c56]">{message}</p> : null}
+            {message ? (
+              <p className="text-sm font-bold text-[#276c56]" role="status" aria-live="polite">
+                {message}
+              </p>
+            ) : null}
 
-            <button className={buttonClass}>
+            <button className={buttonClass} disabled={saving || uploading}>
               {form.id ? "Sacuvaj kolekciju" : "Dodaj kolekciju"}
             </button>
           </div>
@@ -359,7 +383,7 @@ function CollectionsConvex() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void removeCollection({ id: collection._id })}
+                      onClick={() => void deleteCollection(collection._id)}
                       className="rounded-md border border-[#b33a2d]/25 px-4 py-2 text-sm font-bold text-[#9d3026] hover:bg-[#fff0ed]"
                     >
                       Obrisi

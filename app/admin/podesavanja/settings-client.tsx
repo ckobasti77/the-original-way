@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 import {
+  adminErrorMessage,
   buttonClass,
   ConvexSetupNotice,
   fieldClass,
@@ -54,21 +55,29 @@ function SettingsConvex() {
     [settings],
   );
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
-    await Promise.all(
-      Object.keys(defaultSettings).map((key) =>
-        setSetting({
-          key,
-          value: String(formData.get(key) ?? ""),
-        }),
-      ),
-    );
+    setSaving(true);
+    try {
+      await Promise.all(
+        Object.keys(defaultSettings).map((key) =>
+          setSetting({
+            key,
+            value: String(formData.get(key) ?? ""),
+          }),
+        ),
+      );
 
-    setMessage("Podesavanja su sacuvana.");
+      setMessage("Podesavanja su sacuvana.");
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Cuvanje podesavanja nije uspelo."));
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (settings === undefined) {
@@ -130,12 +139,18 @@ function SettingsConvex() {
           />
         </FieldLabel>
         {message ? (
-          <p className="text-sm font-bold text-[#276c56] md:col-span-2">
+          <p
+            className="text-sm font-bold text-[#276c56] md:col-span-2"
+            role="status"
+            aria-live="polite"
+          >
             {message}
           </p>
         ) : null}
         <div className="md:col-span-2">
-          <button className={buttonClass}>Sacuvaj podesavanja</button>
+          <button className={buttonClass} disabled={saving}>
+            {saving ? "Cuvanje..." : "Sacuvaj podesavanja"}
+          </button>
         </div>
       </form>
     </div>

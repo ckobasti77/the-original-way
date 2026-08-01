@@ -40,7 +40,10 @@ function FormAlert({
   fieldErrors?: AuthActionState["fieldErrors"];
   message?: string;
 }) {
-  const errors = Object.values(fieldErrors ?? {}).flat();
+  // Vise polja moze da vrati identicnu poruku (npr. "obavezno polje" za ime i
+  // prezime). Bez dedupliranja se ista recenica prikaze dvaput i React dobija
+  // duplirane kljuceve.
+  const errors = [...new Set(Object.values(fieldErrors ?? {}).flat())];
 
   if (!message && errors.length === 0) {
     return null;

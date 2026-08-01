@@ -14,6 +14,7 @@ import {
 } from "../_lib/constants";
 import type { OrderStatus } from "../_lib/types";
 import {
+  adminErrorMessage,
   buttonClass,
   ConvexSetupNotice,
   EmptyState,
@@ -109,6 +110,8 @@ function EvidenceConvex() {
   const [statusMessage, setStatusMessage] = useState("");
   const [shippingOrder, setShippingOrder] = useState<OrderRecord | null>(null);
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [shippingError, setShippingError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const selectedProduct = products?.find(
@@ -188,26 +191,33 @@ function EvidenceConvex() {
       return;
     }
 
-    await createOrder({
-      firstName: customer.firstName.trim(),
-      lastName: customer.lastName.trim(),
-      email: customer.email.trim() || undefined,
-      city: customer.city.trim(),
-      street: customer.street.trim(),
-      houseNumber: customer.houseNumber.trim(),
-      source: "manual",
-      items: draftItems.map((item) => ({
-        productId: item.productId,
-        size: item.size,
-        quantity: item.quantity,
-        salePriceOverride: item.salePriceOverride,
-      })),
-    });
+    setSaving(true);
+    try {
+      await createOrder({
+        firstName: customer.firstName.trim(),
+        lastName: customer.lastName.trim(),
+        email: customer.email.trim() || undefined,
+        city: customer.city.trim(),
+        street: customer.street.trim(),
+        houseNumber: customer.houseNumber.trim(),
+        source: "manual",
+        items: draftItems.map((item) => ({
+          productId: item.productId,
+          size: item.size,
+          quantity: item.quantity,
+          salePriceOverride: item.salePriceOverride,
+        })),
+      });
 
-    setCustomer(emptyCustomer);
-    setDraftItems([]);
-    setItemForm(emptyItem);
-    setMessage("Porudzbina je dodata u evidenciju.");
+      setCustomer(emptyCustomer);
+      setDraftItems([]);
+      setItemForm(emptyItem);
+      setMessage("Porudzbina je dodata u evidenciju.");
+    } catch (error) {
+      setMessage(adminErrorMessage(error, "Cuvanje porudzbine nije uspelo."));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function notifyOrder(order: OrderRecord, status: OrderStatus, tracking?: string) {
@@ -216,15 +226,21 @@ function EvidenceConvex() {
     }
 
     startTransition(async () => {
-      const result = await sendOrderStatusEmail({
-        stage: status,
-        email: order.email,
-        firstName: order.firstName,
-        lastName: order.lastName,
-        orderNumber: order.orderNumber,
-        trackingNumber: tracking,
-      });
-      setStatusMessage(result.message);
+      try {
+        const result = await sendOrderStatusEmail({
+          stage: status,
+          email: order.email,
+          firstName: order.firstName,
+          lastName: order.lastName,
+          orderNumber: order.orderNumber,
+          trackingNumber: tracking,
+        });
+        setStatusMessage(result.message);
+      } catch (error) {
+        setStatusMessage(
+          adminErrorMessage(error, "Slanje emaila kupcu nije uspelo."),
+        );
+      }
     });
   }
 
@@ -237,29 +253,47 @@ function EvidenceConvex() {
       return;
     }
 
-    await updateOrderStatus({
-      id: order._id,
-      status,
-      trackingNumber: undefined,
-    });
-    notifyOrder(order, status);
+    try {
+      await updateOrderStatus({
+        id: order._id,
+        status,
+        trackingNumber: undefined,
+      });
+      notifyOrder(order, status);
+    } catch (error) {
+      setStatusMessage(
+        adminErrorMessage(error, "Promena statusa porudzbine nije uspela."),
+      );
+    }
   }
 
   async function submitShipping(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!shippingOrder || !trackingNumber.trim()) {
+    if (!shippingOrder) {
       return;
     }
 
-    await updateOrderStatus({
-      id: shippingOrder._id,
-      status: "sent",
-      trackingNumber: trackingNumber.trim(),
-    });
-    notifyOrder(shippingOrder, "sent", trackingNumber.trim());
-    setShippingOrder(null);
-    setTrackingNumber("");
+    if (!trackingNumber.trim()) {
+      setShippingError("Broj posiljke je obavezan.");
+      return;
+    }
+
+    setShippingError("");
+    try {
+      await updateOrderStatus({
+        id: shippingOrder._id,
+        status: "sent",
+        trackingNumber: trackingNumber.trim(),
+      });
+      notifyOrder(shippingOrder, "sent", trackingNumber.trim());
+      setShippingOrder(null);
+      setTrackingNumber("");
+    } catch (error) {
+      setShippingError(
+        adminErrorMessage(error, "Promena statusa porudzbine nije uspela."),
+      );
+    }
   }
 
   return (
@@ -503,15 +537,25 @@ function EvidenceConvex() {
               </div>
             </div>
 
-            {message ? <p className="text-sm font-bold text-[#276c56]">{message}</p> : null}
+            {message ? (
+              <p className="text-sm font-bold text-[#276c56]" role="status" aria-live="polite">
+                {message}
+              </p>
+            ) : null}
 
-            <button className={buttonClass}>Sacuvaj porudzbinu</button>
+            <button className={buttonClass} disabled={saving}>
+              {saving ? "Cuvanje..." : "Sacuvaj porudzbinu"}
+            </button>
           </div>
         </form>
 
         <div className="min-w-0 space-y-3">
-          {statusMessage ? (
-            <div className="rounded-lg border border-[#276c56]/20 bg-[#edf5ef] p-3 text-sm font-bold text-[#1f5946]">
+          {statusMessage || isPending ? (
+            <div
+              className="rounded-lg border border-[#276c56]/20 bg-[#edf5ef] p-3 text-sm font-bold text-[#1f5946]"
+              role="status"
+              aria-live="polite"
+            >
               {isPending ? "Slanje emaila..." : statusMessage}
             </div>
           ) : null}
@@ -734,16 +778,32 @@ function EvidenceConvex() {
               <FieldLabel label="Broj porudzbine">
                 <input
                   value={trackingNumber}
-                  onChange={(event) => setTrackingNumber(event.target.value)}
+                  onChange={(event) => {
+                    setTrackingNumber(event.target.value);
+                    if (shippingError) setShippingError("");
+                  }}
                   className={fieldClass}
+                  aria-invalid={shippingError ? true : undefined}
                   autoFocus
                 />
               </FieldLabel>
             </div>
+            {shippingError ? (
+              <p
+                className="mt-3 text-sm font-bold text-[#9d3026]"
+                role="alert"
+                aria-live="assertive"
+              >
+                {shippingError}
+              </p>
+            ) : null}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShippingOrder(null)}
+                onClick={() => {
+                  setShippingOrder(null);
+                  setShippingError("");
+                }}
                 className={secondaryButtonClass}
               >
                 Otkazi
