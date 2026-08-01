@@ -107,7 +107,7 @@ export default defineSchema({
     externalLogoUrl: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  }).index("by_name", ["name"]),
 
   collections: defineTable({
     name: v.string(),

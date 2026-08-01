@@ -74,7 +74,6 @@ export async function GET() {
     firstName: session.user.firstName,
     lastName: session.user.lastName,
     userId: String(session.user._id),
-    sessionTokenHash,
     expiresInSeconds: remainingSeconds,
   });
 

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import type { Id } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { requireAdmin } from "./lib/authorization";
 
@@ -29,12 +30,38 @@ function slugify(value: string) {
     .replace(/(^-|-$)+/g, "");
 }
 
+/**
+ * Ucitava sve brendove koje koristi dati skup proizvoda u jednom prolazu.
+ * Bez ovoga se radi `ctx.db.get(brandId)` po proizvodu — do 500 dodatnih
+ * citanja po pozivu, na svakom renderu storefronta.
+ */
+async function loadBrandsFor(
+  ctx: QueryCtx,
+  products: { brandId?: Id<"brands"> }[],
+) {
+  const brandIds = [
+    ...new Set(
+      products
+        .map((product) => product.brandId)
+        .filter((id): id is Id<"brands"> => Boolean(id)),
+    ),
+  ];
+  const brands = await Promise.all(brandIds.map((id) => ctx.db.get(id)));
+
+  return new Map(
+    brands
+      .filter((brand) => brand !== null)
+      .map((brand) => [brand._id, { _id: brand._id, name: brand.name }]),
+  );
+}
+
 async function hydrateProducts(ctx: QueryCtx) {
     const products = await ctx.db.query("products").order("desc").take(500);
     const categories = await ctx.db.query("categories").take(200);
     const categoriesBySlug = new Map(
       categories.map((category) => [category.slug, category]),
     );
+    const brandsById = await loadBrandsFor(ctx, products);
 
     return await Promise.all(
       products.map(async (product) => {
@@ -42,16 +69,9 @@ async function hydrateProducts(ctx: QueryCtx) {
           product.imageStorageIds.map((storageId) => ctx.storage.getUrl(storageId)),
         );
 
-        let brand = null;
-        if (product.brandId) {
-          const brandRecord = await ctx.db.get(product.brandId);
-          if (brandRecord) {
-            brand = {
-              _id: brandRecord._id,
-              name: brandRecord.name,
-            };
-          }
-        }
+        const brand = product.brandId
+          ? brandsById.get(product.brandId) ?? null
+          : null;
 
         return {
           ...product,
@@ -139,6 +159,7 @@ export const listRecommended = query({
     const categoriesBySlug = new Map(
       categories.map((category) => [category.slug, category]),
     );
+    const brandsById = await loadBrandsFor(ctx, products);
 
     const enrichedProducts = await Promise.all(
       products.map(async (product) => {
@@ -146,16 +167,9 @@ export const listRecommended = query({
           product.imageStorageIds.map((storageId) => ctx.storage.getUrl(storageId)),
         );
 
-        let brand = null;
-        if (product.brandId) {
-          const brandRecord = await ctx.db.get(product.brandId);
-          if (brandRecord) {
-            brand = {
-              _id: brandRecord._id,
-              name: brandRecord.name,
-            };
-          }
-        }
+        const brand = product.brandId
+          ? brandsById.get(product.brandId) ?? null
+          : null;
 
         const { costPrice, ...publicProduct } = product;
         void costPrice;
@@ -221,12 +235,19 @@ export const remove = mutation({
     await requireAdmin(ctx);
     await ctx.db.delete(id);
 
+    // Samo kolekcije koje su zaista sadrzale proizvod — ranije se patchovala
+    // svaka kolekcija, sto je nepotrebno upisivanje i lazni `updatedAt`.
+    const now = Date.now();
     const collections = await ctx.db.query("collections").take(500);
+    const affected = collections.filter((collection) =>
+      collection.productIds.includes(id),
+    );
+
     await Promise.all(
-      collections.map((collection) =>
+      affected.map((collection) =>
         ctx.db.patch(collection._id, {
           productIds: collection.productIds.filter((productId) => productId !== id),
-          updatedAt: Date.now(),
+          updatedAt: now,
         }),
       ),
     );

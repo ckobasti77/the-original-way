@@ -5,6 +5,7 @@ import { getUserByAuthSubject, syncShippingFromOrder } from "./auth";
 import { safeTrim } from "../lib/auth/crypto";
 import { normalizeCourierProfile } from "../lib/storefront-profile";
 import { requireAdmin } from "./lib/authorization";
+import { storefrontRateLimiter } from "./lib/rateLimits";
 
 const orderStatus = v.union(
   v.literal("new"),
@@ -49,11 +50,24 @@ export const mine = query({
       return [];
     }
 
-    return await ctx.db
+    const orders = await ctx.db
       .query("orders")
       .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(100);
+
+    // Kupac ne sme da vidi marzu. `products.list` vec skida `costPrice`,
+    // pa je ovde ista logika dosledno primenjena na porudzbine.
+    return orders.map(({ totalCost, items, ...order }) => {
+      void totalCost;
+      return {
+        ...order,
+        items: items.map(({ costPrice, ...item }) => {
+          void costPrice;
+          return item;
+        }),
+      };
+    });
   },
 });
 
@@ -190,6 +204,14 @@ export const createStorefront = mutation({
     if (args.items.length === 0 || args.items.length > 50) {
       throw new Error("Porudžbina mora sadržati između 1 i 50 stavki.");
     }
+
+    // Poziva se direktno iz browsera, pa je ovo stvarni IP kupca (za razliku
+    // od auth akcija koje idu preko Next server actiona i vide egress IP).
+    const requestMeta = await ctx.meta.getRequestMetadata();
+    await storefrontRateLimiter.limit(ctx, "createOrder", {
+      key: requestMeta.ip ?? "unknown",
+      throws: true,
+    });
 
     const now = Date.now();
     const identity = await ctx.auth.getUserIdentity();

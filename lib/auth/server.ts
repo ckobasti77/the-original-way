@@ -103,7 +103,6 @@ export function signConvexJwt(payload: {
   firstName: string;
   lastName: string;
   userId: string;
-  sessionTokenHash: string;
   expiresInSeconds?: number;
 }) {
   const now = Math.floor(Date.now() / 1000);
@@ -124,7 +123,9 @@ export function signConvexJwt(payload: {
     iss: AUTH_ISSUER,
     name: `${payload.firstName} ${payload.lastName}`.trim(),
     sub: payload.subject,
-    tow_session_hash: payload.sessionTokenHash,
+    // Namerno bez `tow_session_hash`: JWT se predaje klijentskom JS-u, a hash
+    // sesije je kljuc za `auth.sessionByTokenHash` (javni query koji vraca PII).
+    // Svi pozivaoci ionako izvode hash server-side iz httpOnly kolacica.
     tow_user_id: payload.userId,
   };
 

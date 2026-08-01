@@ -20,3 +20,14 @@ export const authRateLimiter = new RateLimiter(components.rateLimiter, {
     period: HOUR,
   },
 });
+
+export const storefrontRateLimiter = new RateLimiter(components.rateLimiter, {
+  // Naruci moze i neulogovan gost, pa je ovo jedina brana protiv spamovanja
+  // porudzbina i trosenja `TOW-####` sekvence.
+  createOrder: {
+    kind: "token bucket",
+    rate: 20,
+    period: HOUR,
+    capacity: 5,
+  },
+});

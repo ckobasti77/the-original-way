@@ -59,16 +59,22 @@ export const remove = mutation({
     await requireAdmin(ctx);
     await ctx.db.delete(id);
 
-    const products = await ctx.db.query("products").take(500);
+    // `by_brand` indeks vraca tacno pogodjene proizvode. Ranije se citalo
+    // prvih 500 proizvoda i filtriralo u JS-u, sto je i skupo i tiho je
+    // promasivalo brendove sa vise od 500 proizvoda.
+    const now = Date.now();
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_brand", (q) => q.eq("brandId", id))
+      .collect();
+
     await Promise.all(
-      products.map((product) => {
-        if (product.brandId === id) {
-          return ctx.db.patch(product._id, {
-            brandId: undefined,
-            updatedAt: Date.now(),
-          });
-        }
-      }),
+      products.map((product) =>
+        ctx.db.patch(product._id, {
+          brandId: undefined,
+          updatedAt: now,
+        }),
+      ),
     );
   },
 });
@@ -93,7 +99,7 @@ export const seedWithStorage = mutation({
     await requireAdmin(ctx);
     const existing = await ctx.db
       .query("brands")
-      .filter((q) => q.eq(q.field("name"), args.name))
+      .withIndex("by_name", (q) => q.eq("name", args.name))
       .first();
 
     const now = Date.now();
@@ -143,7 +149,6 @@ export const seedFromUrls = action({
     ];
 
     for (const b of list) {
-      console.log(`Preuzimanje i skladistenje brenda: ${b.name}`);
       try {
         const response = await fetch(b.url, {
           headers: {
@@ -164,7 +169,6 @@ export const seedFromUrls = action({
           name: b.name,
           logoStorageId,
         });
-        console.log(`Uspesno seed-ovan brend: ${b.name} sa storageId: ${logoStorageId}`);
       } catch (e) {
         console.error(`Greska pri ucitavanju brenda ${b.name}:`, e instanceof Error ? e.message : e);
       }

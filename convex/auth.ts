@@ -542,6 +542,11 @@ export const sessionByTokenHash = query({
     sessionTokenHash: v.string(),
   },
   handler: async (ctx, args) => {
+    // Namerno se cita zidni sat iako guidelines to ne preporucuju za queryje:
+    // ova funkcija se poziva iskljucivo preko `ConvexHttpClient` sa Next
+    // servera (jednokratno, nikad kao reaktivna pretplata), pa nema kesa koji
+    // bi se pokvario. Alternativa — primiti `now` kao argument — bila bi gora,
+    // jer je funkcija javna pa bi pozivalac mogao da ozivi isteklu sesiju.
     const now = Date.now();
     const session = await getSessionByTokenHash(ctx, args.sessionTokenHash);
 
