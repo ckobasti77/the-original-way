@@ -13,15 +13,30 @@ export function FloatingActions() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // Ova komponenta je montirana u root layoutu, dakle na svakoj stranici.
+    // Bez rAF koalesciranja se `setState` zvao na svaki scroll dogadjaj.
+    let frameId = 0;
+
     const syncScrollState = () => {
+      frameId = 0;
       setShowScrollTop(window.scrollY > 120);
     };
 
+    const handleScroll = () => {
+      if (frameId !== 0) {
+        return;
+      }
+      frameId = window.requestAnimationFrame(syncScrollState);
+    };
+
     syncScrollState();
-    window.addEventListener("scroll", syncScrollState, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", syncScrollState);
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 

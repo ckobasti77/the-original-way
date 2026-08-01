@@ -29,6 +29,10 @@ const FRAME_SEGMENTS = [
   [243, 323],
 ] as const;
 const STEP_TRIGGER_DELTA = 56;
+// Mirovanje posle kog se sledeci wheel dogadjaj smatra pocetkom nove geste.
+// Kontinuirani skrol i inercija trackpada salju dogadjaje na ~16ms, pa 140ms
+// pouzdano razdvaja dva namerna pokreta a da ne preseca jedan.
+const WHEEL_IDLE_RESET_MS = 140;
 const TOUCH_TRIGGER_DELTA = 52;
 const INTRO_DURATION_MS = 2000;
 const STEP_TRANSITION_MS = 1000;
@@ -94,6 +98,7 @@ export function HeroScrollytelling() {
   const lenisRef = useRef<Lenis | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
   const wheelAccumRef = useRef(0);
+  const gestureArmedRef = useRef(true);
   const touchStartYRef = useRef<number | null>(null);
   const stopIndexRef = useRef(0);
   const isAnimatingRef = useRef(false);
@@ -120,14 +125,30 @@ export function HeroScrollytelling() {
     );
   }, []);
 
+  // Pozicija sekcije u dokumentu je konstantna dok se layout ne promeni, a
+  // `getStopPosition` se poziva iz non-passive `wheel`/`touchmove` handlera.
+  // Bez kesa se radi prisilni layout read na svaki tik tockica, uz istovremeni
+  // `preventDefault()` — glavni izvor trzanja tokom price.
+  const sectionStartRef = useRef<number | null>(null);
+
+  const invalidateSectionStart = useCallback(() => {
+    sectionStartRef.current = null;
+  }, []);
+
   const getSectionStart = useCallback(() => {
+    if (sectionStartRef.current !== null) {
+      return sectionStartRef.current;
+    }
+
     const sectionElement = sectionRef.current;
 
     if (!sectionElement) {
       return 0;
     }
 
-    return sectionElement.getBoundingClientRect().top + window.scrollY;
+    const start = sectionElement.getBoundingClientRect().top + window.scrollY;
+    sectionStartRef.current = start;
+    return start;
   }, []);
 
   const getStopPosition = useCallback(
@@ -447,6 +468,16 @@ export function HeroScrollytelling() {
   }, [getStopPosition, prefersReducedMotion]);
 
   useEffect(() => {
+    let gestureRearmTimer = 0;
+
+    const scheduleGestureRearm = () => {
+      window.clearTimeout(gestureRearmTimer);
+      gestureRearmTimer = window.setTimeout(() => {
+        gestureArmedRef.current = true;
+        wheelAccumRef.current = 0;
+      }, WHEEL_IDLE_RESET_MS);
+    };
+
     const handleWheel = (event: WheelEvent) => {
       const target = event.target as HTMLElement;
       if (!sectionRef.current || !sectionRef.current.contains(target)) {
@@ -467,8 +498,22 @@ export function HeroScrollytelling() {
 
       event.preventDefault();
 
+      // Trackpad posle prevlacenja salje inerciju kao neprekidan niz dogadjaja,
+      // jos oko sekund i po. Zato se gesta "naoruzava" tek stvarnim mirovanjem:
+      // svaki wheel dogadjaj odlaze naoruzavanje, pa dok inercija tece nova
+      // gesta ne moze da pocne. Bez ovoga jedan flick preskoci i tri poglavlja.
+      //
+      // Namerno se meri tajmerom a ne razmakom izmedju `timeStamp`-ova: tokom
+      // tranzicije (video + WebGL) isporuka dogadjaja ume da zakasni preko
+      // 140ms, pa bi provera razmaka lazno prijavila novu gestu.
+      scheduleGestureRearm();
+
       if (!introComplete || isAnimatingRef.current || isInputLocked()) {
         wheelAccumRef.current = 0;
+        return;
+      }
+
+      if (!gestureArmedRef.current) {
         return;
       }
 
@@ -480,6 +525,7 @@ export function HeroScrollytelling() {
 
       const direction = wheelAccumRef.current > 0 ? 1 : -1;
       wheelAccumRef.current = 0;
+      gestureArmedRef.current = false;
       requestStageChange(direction);
     };
 
@@ -595,6 +641,7 @@ export function HeroScrollytelling() {
     };
 
     const handleResize = () => {
+      invalidateSectionStart();
       lenisRef.current?.resize();
 
       window.requestAnimationFrame(() => {
@@ -639,6 +686,9 @@ export function HeroScrollytelling() {
       capture: true,
     });
     window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+    // Ucitavanje fontova/slika moze da pomeri layout posle prvog merenja.
+    window.addEventListener("load", invalidateSectionStart);
 
     return () => {
       window.removeEventListener("wheel", handleWheel, true);
@@ -647,10 +697,14 @@ export function HeroScrollytelling() {
       window.removeEventListener("touchend", handleTouchEnd, true);
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      window.removeEventListener("load", invalidateSectionStart);
+      window.clearTimeout(gestureRearmTimer);
     };
   }, [
     getStopPosition,
     introComplete,
+    invalidateSectionStart,
     isInputLocked,
     maxStopIndex,
     prefersReducedMotion,
@@ -854,13 +908,6 @@ export function HeroScrollytelling() {
 
                     {/* Bottom-Left: Sneaker Model + CTA */}
                     <div className="flex flex-col items-center w-full md:-translate-x-[185px]">
-                      {/* <ModelViewer
-                        url="/assets/3d-models/air-max-dn.glb"
-                        scale={1.2}
-                        className="w-full max-w-[340px] h-[260px]"
-                        rotationSpeed={0.006}
-                        cameraPosition={[0, 0, 2.3]}
-                      /> */}
                       <Image
                         src="/assets/images/air-max.avif"
                         alt="Air Max"
@@ -897,13 +944,6 @@ export function HeroScrollytelling() {
                   <div className="story-intro-right flex flex-col justify-between items-end h-full text-right md:pr-[35px]">
                     {/* Top-Right: Tech Fleece Model + CTA */}
                     <div className="flex flex-col items-center w-full md:-translate-y-8 md:translate-x-[170px]">
-                      {/* <ModelViewer
-                        url="/assets/3d-models/tech-fleece.glb"
-                        scale={1.1}
-                        className="w-full max-w-[340px] h-[260px]"
-                        rotationSpeed={0.006}
-                        cameraPosition={[0, -0.18, 2.3]}
-                      /> */}
                       <Image
                         src="/assets/images/lacoste.avif"
                         alt="Lacoste Tech Fleece"
@@ -990,13 +1030,6 @@ export function HeroScrollytelling() {
 
                       {/* Bottom-Left: Sneaker Model + CTA */}
                       <div className="flex flex-col items-center w-full mt-2">
-                        {/* <ModelViewer
-                          url="/assets/3d-models/air-max-dn.glb"
-                          scale={1.2}
-                          className="w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px]"
-                          rotationSpeed={0.006}
-                          cameraPosition={[0, 0, 2.3]}
-                        /> */}
                         <Image
                           src="/assets/images/air-max.avif"
                           alt="Air Max"
@@ -1035,13 +1068,6 @@ export function HeroScrollytelling() {
                     <LiquidGlassCard active={stopIndex === 0 && !isTransitioning} className="w-full max-w-[280px] sm:max-w-[320px] flex flex-col justify-center items-center h-fit p-4 sm:p-6">
                       {/* Top-Right: Tech Fleece Model + CTA */}
                       <div className="flex flex-col items-center w-full mt-2 mb-4">
-                        {/* <ModelViewer
-                          url="/assets/3d-models/tech-fleece.glb"
-                          scale={1.1}
-                          className="w-full max-w-[160px] xs:max-w-[200px] sm:max-w-[240px] h-[110px] xs:h-[130px] sm:h-[160px]"
-                          rotationSpeed={0.006}
-                          cameraPosition={[0, -0.18, 2.3]}
-                        /> */}
                         <Image
                           src="/assets/images/lacoste.avif"
                           alt="Lacoste Tech Fleece"

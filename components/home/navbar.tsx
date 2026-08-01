@@ -460,14 +460,22 @@ export function Navbar() {
     let lastDirection = 0;
     let ticking = false;
 
+    // Element se trazi jednom umesto na svakom rAF tiku tokom skrola.
+    // `isConnected` hvata slucaj kad ga React zameni izmedju rendera.
+    let cachedStoryElement: HTMLElement | null = null;
+
     const isInsideScrollytelling = () => {
       if (!isHomePath) {
         return false;
       }
 
-      const storyElement = document.querySelector<HTMLElement>(
-        "[data-tow-scrollytelling='true']",
-      );
+      if (!cachedStoryElement?.isConnected) {
+        cachedStoryElement = document.querySelector<HTMLElement>(
+          "[data-tow-scrollytelling='true']",
+        );
+      }
+
+      const storyElement = cachedStoryElement;
 
       if (!storyElement) {
         return false;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 
 import type { Language } from "@/components/settings-provider";
@@ -61,7 +61,7 @@ function StoryCta({ href, label, ariaLabel, variant }: StoryCtaProps) {
   );
 }
 
-export function AnimatedText({
+function AnimatedTextImpl({
   chapter,
   isTransitioning,
   language,
@@ -264,3 +264,10 @@ export function AnimatedText({
     </div>
   );
 }
+
+// `chapter` je modulska konstanta iz CHAPTERS, `isTransitioning` je boolean a
+// `language` string — svi propovi su referencijalno stabilni, pa memo stvarno
+// preskace rendere. (Namerno nije primenjen na LiquidGlassCard: on prima
+// `children`, novi JSX element pri svakom renderu roditelja, pa bi memo tamo
+// bio cist trosak.)
+export const AnimatedText = memo(AnimatedTextImpl);

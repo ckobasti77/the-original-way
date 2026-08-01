@@ -56,6 +56,17 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   poweredByHeader: false,
+  images: {
+    // Bez ovoga svaka slika iz Convex Storage-a zaobilazi optimizator i
+    // servira se u punoj velicini. Postojeci `<img>` tagovi ostaju kakvi jesu;
+    // ovo otvara put da se prebace na `next/image` bez dodatne konfiguracije.
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      { protocol: "https", hostname: "*.convex.cloud" },
+      { protocol: "https", hostname: "*.convex.site" },
+      { protocol: "https", hostname: "logo.clearbit.com" },
+    ],
+  },
   async headers() {
     return [
       {

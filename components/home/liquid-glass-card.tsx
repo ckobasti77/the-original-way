@@ -109,11 +109,29 @@ export function LiquidGlassCard({
   const lastUploadedFrameRef = useRef("");
   const lastUploadedSizeRef = useRef<[number, number]>([0, 0]);
   const lastUploadTimeRef = useRef(0);
+  const prefersReducedMotionRef = useRef(false);
+  const wakeRef = useRef<(() => void) | null>(null);
   const [hasWebGL, setHasWebGL] = useState(false);
 
   useEffect(() => {
     activeRef.current = active;
+    // Kartica koja se ponovo aktivira mora da probudi suspendovanu rAF petlju.
+    if (active) {
+      wakeRef.current?.();
+    }
   }, [active]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    prefersReducedMotionRef.current = media.matches;
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      prefersReducedMotionRef.current = event.matches;
+    };
+
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
 
   useEffect(() => {
     darkenFactorRef.current = darkenFactor;
@@ -253,8 +271,28 @@ export function LiquidGlassCard({
     const startTime = performance.now();
     let animationFrameId = 0;
 
+    // Petlja se sama suspenduje kad nema sta da crta i budi je `wake()`.
+    // Ranije je rAF radio neprekidno — do 4 instance, svaka sa svojim WebGL
+    // kontekstom i 25-tap blur sejderom, i kad je kartica van ekrana i kad
+    // je tab sakriven. `activeRef` je preskakao samo crtanje, ne i petlju.
+    let onScreen = true;
+    let running = false;
+    // Vreme provedeno u pauzi se oduzima od `elapsed` da orbita ne odskoci
+    // pri nastavku (sejder je pomera po `cos/sin(elapsed)`).
+    let pausedFor = 0;
+    let pausedAt = 0;
+
+    const shouldRun = () =>
+      activeRef.current && onScreen && document.visibilityState === "visible";
+
     const render = (now: number) => {
-      if (activeRef.current && width > 0 && height > 0) {
+      if (!shouldRun()) {
+        running = false;
+        pausedAt = performance.now();
+        return;
+      }
+
+      if (width > 0 && height > 0) {
         const frameCanvas = document.getElementById(
           "hero-frame-canvas",
         ) as HTMLCanvasElement | null;
@@ -274,11 +312,14 @@ export function LiquidGlassCard({
             idleTime <= 1_500
               ? 1
               : Math.max(0, 1 - (idleTime - 1_500) / 1_000);
-          const elapsed = (now - startTime) / 1_000;
+          const elapsed = (now - startTime - pausedFor) / 1_000;
+          // Uz `prefers-reduced-motion` orbita miruje, ali se refrakcija i
+          // dalje crta — izgled kartice ostaje isti, nestaje samo kretanje.
+          const orbitTime = prefersReducedMotionRef.current ? 0 : elapsed;
           const orbitX =
-            width / 2 + Math.cos(elapsed * 0.9) * width * 0.16;
+            width / 2 + Math.cos(orbitTime * 0.9) * width * 0.16;
           const orbitY =
-            height / 2 + Math.sin(elapsed * 0.72) * height * 0.16;
+            height / 2 + Math.sin(orbitTime * 0.72) * height * 0.16;
           const cardBottom =
             window.innerHeight - (rect.top + rect.height);
           const pointerX = mouseRef.current[0] - rect.left;
@@ -364,10 +405,62 @@ export function LiquidGlassCard({
       animationFrameId = window.requestAnimationFrame(render);
     };
 
-    animationFrameId = window.requestAnimationFrame(render);
+    const wake = () => {
+      if (running || !shouldRun()) {
+        return;
+      }
+      if (pausedAt !== 0) {
+        pausedFor += performance.now() - pausedAt;
+        pausedAt = 0;
+      }
+      // Tekstura je zastarela dok je petlja spavala — forsiraj novi upload.
+      lastUploadedFrameRef.current = "";
+      running = true;
+      animationFrameId = window.requestAnimationFrame(render);
+    };
+
+    const suspend = () => {
+      if (!running) {
+        return;
+      }
+      running = false;
+      pausedAt = performance.now();
+      window.cancelAnimationFrame(animationFrameId);
+    };
+
+    // `rootMargin` daje kartici prostor da se probudi i oslika pre nego sto
+    // stvarno udje u vidno polje, pa nastavak nikad nije vidljiv.
+    const visibilityObserver = new IntersectionObserver(
+      (entries) => {
+        onScreen = entries.some((entry) => entry.isIntersecting);
+        if (onScreen) {
+          wake();
+        } else {
+          suspend();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    visibilityObserver.observe(container);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        wake();
+      } else {
+        suspend();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    wakeRef.current = wake;
+    wake();
 
     return () => {
+      wakeRef.current = null;
+      running = false;
       window.cancelAnimationFrame(animationFrameId);
+      visibilityObserver.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       resizeObserver.disconnect();
       gl.deleteTexture(texture);
       gl.deleteBuffer(buffer);

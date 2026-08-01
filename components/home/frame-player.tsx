@@ -537,6 +537,43 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
       [waitForVideo],
     );
 
+    // Reverse video (~3.5 MB) treba tek kad se korisnik vrati unazad, ali je
+    // ranije imao `preload="auto"` i skidao se na svakoj poseti pocetnoj uz
+    // forward video. Sada krece kao `metadata`, pa se u prvom mirnom trenutku
+    // nadogradi na `auto` — bandwidth se stedi na kriticnoj putanji, a video je
+    // spreman mnogo pre nego sto iko odskroluje nazad (fallback na WebP nikad
+    // ne treba da se okine).
+    useEffect(() => {
+      let idleId = 0;
+      let timeoutId = 0;
+
+      const upgradeReversePreload = () => {
+        const video = reverseVideoRef.current;
+        if (!video || video.preload === "auto") {
+          return;
+        }
+        video.preload = "auto";
+        video.load();
+      };
+
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(upgradeReversePreload, {
+          timeout: 4_000,
+        });
+      } else {
+        timeoutId = window.setTimeout(upgradeReversePreload, 2_500);
+      }
+
+      return () => {
+        if (idleId && typeof window.cancelIdleCallback === "function") {
+          window.cancelIdleCallback(idleId);
+        }
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+      };
+    }, []);
+
     // Setup Resizing logic with window resize listener to ensure crisp quality & correct cover style
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -724,7 +761,7 @@ export const FramePlayer = forwardRef<FramePlayerHandle, FramePlayerProps>(
           data-hero-frame-video="true"
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           src="/assets/hero-video/story-reverse.mp4"
         />
       </>
