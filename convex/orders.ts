@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { getUserByAuthSubject, syncShippingFromOrder } from "./auth";
+import { readCachedRate, readDefaultCurrency } from "./currency";
 import { safeTrim } from "../lib/auth/crypto";
 import { normalizeCourierProfile } from "../lib/storefront-profile";
 import { requireAdmin } from "./lib/authorization";
@@ -12,6 +13,7 @@ const orderStatus = v.union(
   v.literal("sent"),
   v.literal("completed"),
 );
+const currency = v.union(v.literal("EUR"), v.literal("RSD"));
 
 const storefrontItem = v.object({
   productId: v.id("products"),
@@ -66,6 +68,7 @@ export const create = mutation({
     street: v.string(),
     houseNumber: v.string(),
     source: v.union(v.literal("site"), v.literal("manual")),
+    currency: v.optional(currency),
     items: v.array(
       v.object({
         productId: v.id("products"),
@@ -136,6 +139,11 @@ export const create = mutation({
       );
     }
 
+    // Zamrzni valutu (podrazumevana valuta prodavnice, ako nije prosleđena) i
+    // tekući kurs iz keša. Iznosi ostaju u EUR bazi.
+    const orderCurrency = args.currency ?? (await readDefaultCurrency(ctx));
+    const exchangeRate = await readCachedRate(ctx);
+
     return await ctx.db.insert("orders", {
       orderNumber,
       userId: user?._id,
@@ -150,6 +158,8 @@ export const create = mutation({
       items,
       totalCost,
       totalSale,
+      currency: orderCurrency,
+      exchangeRate,
       createdAt: now,
       updatedAt: now,
       statusUpdatedAt: now,
@@ -170,11 +180,15 @@ export const createStorefront = mutation({
     addressLine2: v.optional(v.string()),
     deliveryNote: v.optional(v.string()),
     saveToProfile: v.boolean(),
+    currency: v.optional(currency),
     items: v.array(storefrontItem),
   },
   returns: v.object({
     orderId: v.id("orders"),
     orderNumber: v.string(),
+    totalSale: v.number(),
+    currency,
+    exchangeRate: v.number(),
   }),
   handler: async (ctx, args) => {
     if (args.items.length === 0 || args.items.length > 50) {
@@ -210,6 +224,11 @@ export const createStorefront = mutation({
       });
     }
 
+    // Zamrzni valutu koju je kupac gledao i tekući kurs iz keša (nikad sa
+    // klijenta). Iznosi (salePrice/totalSale) ostaju u EUR bazi.
+    const orderCurrency = args.currency ?? "EUR";
+    const exchangeRate = await readCachedRate(ctx);
+
     const orderNumber = await nextOrderNumber(ctx);
     const orderId = await ctx.db.insert("orders", {
       orderNumber,
@@ -220,6 +239,8 @@ export const createStorefront = mutation({
       items,
       totalCost,
       totalSale,
+      currency: orderCurrency,
+      exchangeRate,
       createdAt: now,
       updatedAt: now,
       statusUpdatedAt: now,
@@ -246,7 +267,13 @@ export const createStorefront = mutation({
       });
     }
 
-    return { orderId, orderNumber };
+    return {
+      orderId,
+      orderNumber,
+      totalSale,
+      currency: orderCurrency,
+      exchangeRate,
+    };
   },
 });
 

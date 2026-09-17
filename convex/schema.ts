@@ -18,6 +18,7 @@ const orderStatus = v.union(
   v.literal("sent"),
   v.literal("completed"),
 );
+const currency = v.union(v.literal("EUR"), v.literal("RSD"));
 
 export default defineSchema({
   users: defineTable({
@@ -75,6 +76,9 @@ export default defineSchema({
     categorySlug: v.optional(v.string()),
     costPrice: v.number(),
     salePrice: v.number(),
+    // Opcioni ručno unet RSD override (za prikaz u katalogu). Ako nedostaje,
+    // RSD se računa iz salePrice (EUR baza) po tekućem kursu.
+    salePriceRsd: v.optional(v.number()),
     sizes: v.array(v.string()),
     imageStorageIds: v.array(v.id("_storage")),
     externalImageUrls: v.array(v.string()),
@@ -151,6 +155,12 @@ export default defineSchema({
     ),
     totalCost: v.number(),
     totalSale: v.number(),
+    // Zamrznuta valuta i kurs u trenutku porudžbine. Iznosi (salePrice/totalSale)
+    // ostaju u EUR bazi; RSD prikaz se računa iz zamrznutog exchangeRate, pa
+    // kasnije promene kursa NE menjaju istorijske iznose. Opciono zbog starih
+    // porudžbina (bez ovih polja se tretiraju kao EUR).
+    currency: v.optional(currency),
+    exchangeRate: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
     statusUpdatedAt: v.number(),
@@ -164,4 +174,14 @@ export default defineSchema({
     value: v.string(),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
+
+  // Keš deviznog kursa (jedan red po valutnom paru, npr. EUR->RSD).
+  // Puni ga dnevni cron; storefront ga čita javnim queryjem.
+  exchangeRates: defineTable({
+    base: v.string(), // "EUR"
+    quote: v.string(), // "RSD"
+    rate: v.number(), // srednji kurs (exchange_middle)
+    source: v.string(), // "nbs" | "er-api" | "fallback"
+    fetchedAt: v.number(),
+  }).index("by_base_and_quote", ["base", "quote"]),
 });

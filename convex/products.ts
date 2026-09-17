@@ -15,6 +15,9 @@ const productArgs = {
   categorySlug: v.optional(v.string()),
   costPrice: v.number(),
   salePrice: v.number(),
+  // Opcioni ručno unet RSD override (prikaz u katalogu); prolazi kroz upsert
+  // preko `...product` spread-a.
+  salePriceRsd: v.optional(v.number()),
   sizes: v.array(v.string()),
   imageStorageIds: v.array(v.id("_storage")),
   externalImageUrls: v.array(v.string()),
