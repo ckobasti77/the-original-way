@@ -3,8 +3,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 
+import { useCurrency } from "@/components/currency-provider";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { formatRsd } from "@/lib/currency";
 
 import {
   clothingSizes,
@@ -35,6 +37,7 @@ type ProductRecord = {
   categorySlug?: string;
   costPrice: number;
   salePrice: number;
+  salePriceRsd?: number;
   sizes: string[];
   imageStorageIds: Id<"_storage">[];
   externalImageUrls: string[];
@@ -73,6 +76,7 @@ type ProductForm = {
   categorySlug: string;
   costPrice: string;
   salePrice: string;
+  salePriceRsd: string;
   sizes: string[];
   imageStorageIds: Id<"_storage">[];
   externalImageUrls: string;
@@ -89,6 +93,7 @@ const emptyForm: ProductForm = {
   categorySlug: "",
   costPrice: "",
   salePrice: "",
+  salePriceRsd: "",
   sizes: [],
   imageStorageIds: [],
   externalImageUrls: "",
@@ -120,6 +125,7 @@ function ProductsConvex() {
   const categories = useQuery(api.categories.list, {}) as
     | CategoryRecord[]
     | undefined;
+  const { rate } = useCurrency();
   const upsertProduct = useMutation(api.products.upsert);
   const removeProduct = useMutation(api.products.remove);
   const ensureDefaultCategories = useMutation(api.categories.ensureDefaults);
@@ -208,21 +214,37 @@ function ProductsConvex() {
     event.preventDefault();
 
     const costPrice = Number(form.costPrice);
-    const salePrice = Number(form.salePrice);
     const recommendationOrder =
       form.isRecommended && form.recommendationOrder.trim()
         ? Number(form.recommendationOrder)
         : undefined;
 
+    // Cena se može uneti u EUR ili RSD (ili oba). EUR je baza; ako je uneta
+    // samo RSD, EUR baza se izvodi po tekućem kursu. Ako su uneta oba, RSD se
+    // pamti kao override za prikaz u katalogu.
+    const eurRaw = form.salePrice.trim();
+    const rsdRaw = form.salePriceRsd.trim();
+    const eurNum = Number(eurRaw);
+    const rsdNum = Number(rsdRaw);
+    const hasEur = eurRaw !== "" && Number.isFinite(eurNum) && eurNum >= 0;
+    const hasRsd = rsdRaw !== "" && Number.isFinite(rsdNum) && rsdNum >= 0;
+
     if (
       !form.name.trim() ||
       !form.categorySlug ||
       !Number.isFinite(costPrice) ||
-      !Number.isFinite(salePrice)
+      (!hasEur && !hasRsd)
     ) {
-      setMessage("Naziv, kategorija, nabavna cena i prodajna cena su obavezni.");
+      setMessage(
+        "Naziv, kategorija, nabavna cena i bar jedna prodajna cena (EUR ili RSD) su obavezni.",
+      );
       return;
     }
+
+    const salePrice = hasEur
+      ? eurNum
+      : Math.round((rsdNum / rate) * 100) / 100;
+    const salePriceRsd = hasRsd ? rsdNum : undefined;
 
     if (
       form.isRecommended &&
@@ -242,6 +264,7 @@ function ProductsConvex() {
       categorySlug: form.categorySlug,
       costPrice,
       salePrice,
+      salePriceRsd,
       sizes: form.sizes,
       imageStorageIds: form.imageStorageIds,
       externalImageUrls: form.externalImageUrls
@@ -267,6 +290,8 @@ function ProductsConvex() {
       categorySlug: product.categorySlug ?? "",
       costPrice: String(product.costPrice),
       salePrice: String(product.salePrice),
+      salePriceRsd:
+        product.salePriceRsd === undefined ? "" : String(product.salePriceRsd),
       sizes: product.sizes,
       imageStorageIds: product.imageStorageIds,
       externalImageUrls: product.externalImageUrls.join(", "),
@@ -471,7 +496,7 @@ function ProductsConvex() {
                   placeholder="4500"
                 />
               </FieldLabel>
-              <FieldLabel label="Prodajna cena">
+              <FieldLabel label="Prodajna cena (EUR)">
                 <input
                   value={form.salePrice}
                   onChange={(event) =>
@@ -482,10 +507,29 @@ function ProductsConvex() {
                   }
                   inputMode="decimal"
                   className={fieldClass}
-                  placeholder="8990"
+                  placeholder="99"
+                />
+              </FieldLabel>
+              <FieldLabel label="Prodajna cena (RSD)">
+                <input
+                  value={form.salePriceRsd}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      salePriceRsd: event.target.value,
+                    }))
+                  }
+                  inputMode="decimal"
+                  className={fieldClass}
+                  placeholder="računa se iz EUR"
                 />
               </FieldLabel>
             </div>
+            <p className="-mt-1 text-xs text-black/50">
+              Popuni bar jednu prodajnu cenu. Ako uneseš samo jednu, druga se
+              računa po kursu (EUR je osnova). Ako uneseš obe, RSD ima prednost
+              pri prikazu u katalogu.
+            </p>
 
             <div>
               <p className="mb-2 text-sm font-bold text-black/70">Slike</p>
@@ -628,6 +672,11 @@ function ProductsConvex() {
                           </td>
                           <td className="px-4 py-4">
                             <p>{formatCurrency(product.salePrice)}</p>
+                            {product.salePriceRsd !== undefined ? (
+                              <p className="text-xs text-black/50">
+                                RSD: {formatRsd(product.salePriceRsd)}
+                              </p>
+                            ) : null}
                             <p className="text-xs text-black/50">
                               Nabavna: {formatCurrency(product.costPrice)}
                             </p>
@@ -741,6 +790,9 @@ function ProductsConvex() {
                         <div>
                           <p className="text-black/45 uppercase text-[9px] font-bold tracking-wider">Prodajna cena</p>
                           <p className="font-bold text-[#276c56] mt-0.5">{formatCurrency(product.salePrice)}</p>
+                          {product.salePriceRsd !== undefined ? (
+                            <p className="text-[10px] text-black/45 mt-0.5">RSD: {formatRsd(product.salePriceRsd)}</p>
+                          ) : null}
                         </div>
                       </div>
 
