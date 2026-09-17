@@ -107,7 +107,7 @@ export default async function ProductsPage({
       </section>
 
       <section className="px-4 py-8 md:px-8 md:py-10">
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
           <Suspense
             fallback={
               <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-4 text-sm font-bold text-[var(--text-muted)]">

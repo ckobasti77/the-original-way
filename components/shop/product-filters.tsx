@@ -417,7 +417,7 @@ export function ProductFilters({
   ].filter((label): label is string => Boolean(label));
 
   return (
-    <aside className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-strong)] p-4 shadow-[0_20px_55px_rgba(var(--shadow-rgb),0.10)] backdrop-blur-xl">
+    <aside className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-strong)] p-4 shadow-[0_20px_55px_rgba(var(--shadow-rgb),0.10)] backdrop-blur-xl lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
