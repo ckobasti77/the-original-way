@@ -5,10 +5,11 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 
+import { useCurrency } from "@/components/currency-provider";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import { localizeHref } from "@/lib/storefront-i18n";
-import { formatShopPrice, slugify, type ShopProduct } from "@/lib/shop-taxonomy";
+import { slugify, type ShopProduct } from "@/lib/shop-taxonomy";
 
 type SearchVariant = "desktop" | "mobile";
 
@@ -79,6 +80,7 @@ function SearchResults({
   results: SearchProduct[];
 }) {
   const { language } = useSettings();
+  const { formatPrice } = useCurrency();
   const normalizedQuery = query.trim();
 
   return (
@@ -115,7 +117,7 @@ function SearchResults({
             </span>
           </span>
           <span className="text-right text-xs font-bold text-[var(--text-primary)]">
-            {formatShopPrice(product.salePrice)}
+            {formatPrice(product.salePrice)}
           </span>
         </Link>
       ))}

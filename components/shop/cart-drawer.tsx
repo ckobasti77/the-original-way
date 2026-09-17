@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 
+import { useCurrency } from "@/components/currency-provider";
 import { useSettings } from "@/components/settings-provider";
 import { localizeHref } from "@/lib/storefront-i18n";
-import { formatShopPrice } from "@/lib/shop-taxonomy";
 
 import { useCart } from "./cart-provider";
 
@@ -45,6 +45,7 @@ export function CartNavButton({ className }: { className: string }) {
 
 export function CartDrawer() {
   const { language } = useSettings();
+  const { formatPrice } = useCurrency();
   const copy = language === "sr"
     ? { cart: "Korpa", close: "Zatvori korpu", empty: "Prazna korpa", emptyText: "Artikli koje dodate iz kataloga pojaviće se ovde.", remove: "Ukloni", decrease: "Smanji količinu", increase: "Povećaj količinu", total: "Ukupno", checkout: "Nastavi na plaćanje", clear: "Isprazni korpu", catalog: "Katalog" }
     : { cart: "Cart", close: "Close cart", empty: "Your cart is empty", emptyText: "Items you add from the catalog will appear here.", remove: "Remove", decrease: "Decrease quantity", increase: "Increase quantity", total: "Total", checkout: "Continue to checkout", clear: "Clear cart", catalog: "Catalog" };
@@ -174,7 +175,7 @@ export function CartDrawer() {
                         </button>
                       </div>
                       <p className="text-sm font-bold">
-                        {formatShopPrice(item.price * item.quantity)}
+                        {formatPrice(item.price * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -187,7 +188,7 @@ export function CartDrawer() {
         <div className="border-t border-[var(--border-soft)] p-5">
           <div className="flex items-center justify-between text-sm">
             <span className="font-semibold text-[var(--text-muted)]">{copy.total}</span>
-            <span className="text-xl font-bold">{formatShopPrice(subtotal)}</span>
+            <span className="text-xl font-bold">{formatPrice(subtotal)}</span>
           </div>
           <div className="mt-4 grid gap-2">
             {items.length > 0 ? (

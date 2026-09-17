@@ -12,10 +12,11 @@ import {
 } from "react";
 import { useQuery } from "convex/react";
 
+import { useCurrency } from "@/components/currency-provider";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { formatShopPrice, type ProductGender, type ProductType } from "@/lib/shop-taxonomy";
+import { type ProductGender, type ProductType } from "@/lib/shop-taxonomy";
 
 type RecommendedProduct = {
   _id: Id<"products">;
@@ -69,6 +70,7 @@ function ProductVisual({
   compact?: boolean;
   product: RecommendedProduct;
 }) {
+  const { formatPrice } = useCurrency();
   const imageUrl = product.imageUrls[0];
   const brandName = product.brand?.name ?? "The Original Way";
 
@@ -103,7 +105,7 @@ function ProductVisual({
           {product.name}
         </h3>
         <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">
-          {formatShopPrice(product.salePrice)}
+          {formatPrice(product.salePrice)}
         </p>
       </div>
     </article>

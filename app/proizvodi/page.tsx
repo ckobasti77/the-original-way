@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/shop/product-card";
 import { ProductFilters } from "@/components/shop/product-filters";
 import { getShopCatalog } from "@/lib/shop-data";
 import { applyShopFilters, parseShopFilters } from "@/lib/shop-filtering";
-import { formatShopPrice } from "@/lib/shop-taxonomy";
+import { Price } from "@/components/currency-provider";
 import { STORE_COPY, type StoreLocale } from "@/lib/storefront-i18n";
 
 function sortSizes(sizes: string[]) {
@@ -99,9 +99,7 @@ export default async function ProductsPage({
                 {copy.from}
               </p>
               <p className="mt-1 text-lg font-bold">
-                {catalog.products.length > 0
-                  ? formatShopPrice(Math.min(...prices))
-                  : "0 EUR"}
+                <Price value={catalog.products.length > 0 ? Math.min(...prices) : 0} />
               </p>
             </div>
           </div>

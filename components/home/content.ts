@@ -351,8 +351,11 @@ export const UI_COPY = {
     storyNavigation: "Navigacija kroz poglavlja",
     switchToDark: "Prebaci na tamnu temu",
     switchToEnglish: "Prebaci na engleski jezik",
+    switchToEur: "Prikaži cene u evrima",
     switchToLight: "Prebaci na svetlu temu",
+    switchToRsd: "Prikaži cene u dinarima",
     switchToSerbian: "Prebaci na srpski jezik",
+    currency: "Valuta",
     theme: "Tema",
   },
   en: {
@@ -376,8 +379,11 @@ export const UI_COPY = {
     storyNavigation: "Chapter navigation",
     switchToDark: "Switch to dark theme",
     switchToEnglish: "Switch to English",
+    switchToEur: "Show prices in euros",
     switchToLight: "Switch to light theme",
+    switchToRsd: "Show prices in dinars",
     switchToSerbian: "Switch to Serbian",
+    currency: "Currency",
     theme: "Theme",
   },
 } as const;

@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 
+import { useCurrency } from "@/components/currency-provider";
 import { useSettings } from "@/components/settings-provider";
 import { localizeHref } from "@/lib/storefront-i18n";
-import { formatShopPrice, productGenderLabels, type ShopProduct } from "@/lib/shop-taxonomy";
+import { productGenderLabels, type ShopProduct } from "@/lib/shop-taxonomy";
 
 import { QuickAddToCart } from "./add-to-cart-button";
 
 export function ProductCard({ product }: { product: ShopProduct }) {
   const { language } = useSettings();
+  const { formatPrice } = useCurrency();
   const imageUrl = product.imageUrls[0];
 
   return (
@@ -53,7 +55,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
             </Link>
           </div>
           <p className="shrink-0 text-right text-sm font-bold">
-            {formatShopPrice(product.salePrice)}
+            {formatPrice(product.salePrice, { rsdOverride: product.salePriceRsd })}
           </p>
         </div>
 

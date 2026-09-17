@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 
+import { useCurrency } from "@/components/currency-provider";
 import { useSettings } from "@/components/settings-provider";
 import { CartDrawer, CartNavButton } from "@/components/shop/cart-drawer";
 import { ProductSearch } from "@/components/shop/product-search";
@@ -178,6 +179,48 @@ function LanguageToggle({ variant = "icon" }: { variant?: "icon" | "menu" }) {
   );
 }
 
+function CurrencyToggle({ variant = "icon" }: { variant?: "icon" | "menu" }) {
+  const { language } = useSettings();
+  const { currency, toggleCurrency } = useCurrency();
+  const copy = UI_COPY[language];
+  const isMenuVariant = variant === "menu";
+  const ariaLabel = currency === "EUR" ? copy.switchToRsd : copy.switchToEur;
+
+  if (isMenuVariant) {
+    return (
+      <button
+        type="button"
+        onClick={toggleCurrency}
+        aria-label={ariaLabel}
+        className={MENU_ROW_CLASS}
+      >
+        <span className="min-w-0">
+          <span className="nav-text block text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+            {copy.currency}
+          </span>
+          <span className="mt-1 block text-sm font-semibold text-[var(--text-primary)]">
+            {currency === "EUR" ? "Evro (EUR)" : "Dinar (RSD)"}
+          </span>
+        </span>
+        <span className="inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[rgba(var(--accent-rgb),0.08)] px-3 text-[0.72rem] font-bold uppercase tracking-[0.15em] text-[var(--text-primary)]">
+          {currency}
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggleCurrency}
+      aria-label={ariaLabel}
+      className={`${ICON_BUTTON_CLASS} mr-1 text-[0.7rem] font-sans font-semibold tracking-[0.15em] cursor-pointer select-none`}
+    >
+      {currency}
+    </button>
+  );
+}
+
 export function ProfileMenu({
   authHref,
   authLabel,
@@ -311,6 +354,7 @@ export function ProfileMenu({
           </div>
 
           <div className="mt-3 grid gap-2">
+            <CurrencyToggle variant="menu" />
             <LanguageToggle variant="menu" />
             <ThemeToggle variant="menu" />
           </div>
@@ -765,6 +809,7 @@ export function Navbar() {
                 convexEnabled={convexEnabled}
               />
               <CartNavButton className={ICON_BUTTON_CLASS} />
+              <CurrencyToggle />
               <LanguageToggle />
               <ThemeToggle />
               {isAuthenticated ? (
@@ -1065,6 +1110,7 @@ export function Navbar() {
         {/* Drawer Footer */}
         <div className="border-t border-[var(--border-soft)] px-6 py-6 bg-[rgba(var(--shadow-rgb),0.02)] flex flex-col gap-4">
           <div className="flex items-center justify-between">
+            <CurrencyToggle />
             <LanguageToggle />
             <ThemeToggle />
           </div>

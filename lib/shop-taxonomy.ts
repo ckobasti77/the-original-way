@@ -39,6 +39,7 @@ export type ShopProduct = {
   brandName: string;
   costPrice?: number;
   salePrice: number;
+  salePriceRsd?: number;
   sizes: string[];
   imageUrls: string[];
   collectionSlugs: string[];
