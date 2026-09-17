@@ -6,7 +6,11 @@ import { requireAdmin } from "./lib/authorization";
 const productArgs = {
   name: v.string(),
   description: v.string(),
-  type: v.union(v.literal("clothing"), v.literal("footwear")),
+  type: v.union(
+    v.literal("clothing"),
+    v.literal("footwear"),
+    v.literal("accessories"),
+  ),
   gender: v.union(v.literal("men"), v.literal("women"), v.literal("kids")),
   categorySlug: v.optional(v.string()),
   costPrice: v.number(),

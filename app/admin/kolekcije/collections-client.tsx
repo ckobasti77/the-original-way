@@ -20,7 +20,7 @@ import {
 type ProductRecord = {
   _id: Id<"products">;
   name: string;
-  type: "clothing" | "footwear";
+  type: "clothing" | "footwear" | "accessories";
 };
 
 type CollectionRecord = {

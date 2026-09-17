@@ -167,6 +167,7 @@ export const COLLECTION_COPY: Record<
 
 export const NAV_MENU_COPY = {
   sr: {
+    accessories: "Dodaci",
     categories: "Kategorije",
     clothing: "Odeća",
     collections: "Kolekcije",
@@ -176,6 +177,7 @@ export const NAV_MENU_COPY = {
     empty: "Kategorije se učitavaju.",
   },
   en: {
+    accessories: "Accessories",
     categories: "Categories",
     clothing: "Clothing",
     collections: "Collections",

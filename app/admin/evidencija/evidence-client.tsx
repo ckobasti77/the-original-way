@@ -29,7 +29,7 @@ import {
 type ProductRecord = {
   _id: Id<"products">;
   name: string;
-  type: "clothing" | "footwear";
+  type: "clothing" | "footwear" | "accessories";
   gender: "men" | "women" | "kids";
   costPrice: number;
   salePrice: number;

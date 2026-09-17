@@ -1,7 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-const productType = v.union(v.literal("clothing"), v.literal("footwear"));
+const productType = v.union(
+  v.literal("clothing"),
+  v.literal("footwear"),
+  v.literal("accessories"),
+);
 const productGender = v.union(
   v.literal("men"),
   v.literal("women"),

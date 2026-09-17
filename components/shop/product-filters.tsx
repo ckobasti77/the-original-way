@@ -37,6 +37,7 @@ const genderOptions: CheckboxOption[] = [
 const typeOptions: CheckboxOption[] = [
   { value: "clothing", label: productTypeLabels.clothing },
   { value: "footwear", label: productTypeLabels.footwear },
+  { value: "accessories", label: productTypeLabels.accessories },
 ];
 
 const filterParamKeys = [
@@ -297,6 +298,15 @@ export function ProductFilters({
           title: productTypeLabels.footwear,
           options: categories
             .filter((category) => category.type === "footwear")
+            .map<CheckboxOption>((category) => ({
+              value: category.slug,
+              label: category.name,
+            })),
+        },
+        {
+          title: productTypeLabels.accessories,
+          options: categories
+            .filter((category) => category.type === "accessories")
             .map<CheckboxOption>((category) => ({
               value: category.slug,
               label: category.name,

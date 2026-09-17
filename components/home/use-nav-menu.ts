@@ -101,7 +101,7 @@ export function useNavMenu(language: Language) {
     const categoryColumns = (gender?: string): NavMenuColumn[] => {
       const genderQuery = gender ? `gender=${gender}&` : "";
 
-      return (["clothing", "footwear"] as const)
+      return (["clothing", "footwear", "accessories"] as const)
         .map((type) => ({
           href: `/proizvodi?${genderQuery}type=${type}`,
           items: categories

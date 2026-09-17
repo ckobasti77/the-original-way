@@ -3,7 +3,11 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAdmin } from "./lib/authorization";
 
-const categoryType = v.union(v.literal("clothing"), v.literal("footwear"));
+const categoryType = v.union(
+  v.literal("clothing"),
+  v.literal("footwear"),
+  v.literal("accessories"),
+);
 
 const defaultCategories = [
   { name: "Majice", slug: "majice", type: "clothing", sortOrder: 10 },
@@ -18,10 +22,14 @@ const defaultCategories = [
   { name: "Full-zip duksevi", slug: "full-zip-duksevi", type: "clothing", sortOrder: 100 },
   { name: "Half-zip duksevi", slug: "half-zip-duksevi", type: "clothing", sortOrder: 110 },
   { name: "Bomber jakne", slug: "bomber-jakne", type: "clothing", sortOrder: 120 },
+  { name: "Duksevi", slug: "duksevi", type: "clothing", sortOrder: 95 },
+  { name: "Duksevi sa kapuljacom", slug: "duksevi-sa-kapuljacom", type: "clothing", sortOrder: 105 },
+  { name: "Skijaske pantalone", slug: "skijaske-pantalone", type: "clothing", sortOrder: 130 },
   { name: "Patike", slug: "patike", type: "footwear", sortOrder: 210 },
   { name: "Duboke patike", slug: "duboke-patike", type: "footwear", sortOrder: 220 },
   { name: "Cipele", slug: "cipele", type: "footwear", sortOrder: 230 },
   { name: "Papuce", slug: "papuce", type: "footwear", sortOrder: 240 },
+  { name: "Dodaci", slug: "dodaci", type: "accessories", sortOrder: 310 },
 ] as const;
 
 function slugify(value: string) {

@@ -59,7 +59,7 @@ export function parseShopFilters(params: SearchParamsInput): ShopFilters {
     q: getFirstParam(params.q)?.trim() || undefined,
     size: asUniqueList(asList(params.size)),
     sort: asSort(getFirstParam(params.sort)),
-    type: asEnumList(params.type, ["clothing", "footwear"] as const),
+    type: asEnumList(params.type, ["clothing", "footwear", "accessories"] as const),
   };
 }
 
