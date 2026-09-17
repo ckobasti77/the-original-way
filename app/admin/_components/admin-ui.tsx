@@ -8,7 +8,7 @@ export const secondaryButtonClass =
   "rounded-md border border-black/15 px-4 py-2 text-sm font-bold text-[#141816] hover:border-[#276c56] hover:text-[#276c56] disabled:cursor-not-allowed disabled:opacity-60";
 
 export function formatCurrency(value: number) {
-  return `${value.toLocaleString("sr-RS")} RSD`;
+  return `${value.toLocaleString("sr-RS")} EUR`;
 }
 
 export function SectionHeader({

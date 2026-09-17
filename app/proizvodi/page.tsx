@@ -101,7 +101,7 @@ export default async function ProductsPage({
               <p className="mt-1 text-lg font-bold">
                 {catalog.products.length > 0
                   ? formatShopPrice(Math.min(...prices))
-                  : "0 RSD"}
+                  : "0 EUR"}
               </p>
             </div>
           </div>

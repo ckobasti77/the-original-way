@@ -144,7 +144,7 @@ export function normalizeCollectionSlug(name: string) {
 }
 
 export function formatShopPrice(value: number) {
-  return `${value.toLocaleString("sr-RS")} RSD`;
+  return `${value.toLocaleString("sr-RS")} EUR`;
 }
 
 export function getFirstParam(value: string | string[] | undefined) {

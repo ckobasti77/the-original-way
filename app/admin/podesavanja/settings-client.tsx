@@ -21,7 +21,7 @@ type SettingRecord = {
 
 const defaultSettings = {
   storeName: "The Original Way",
-  currency: "RSD",
+  currency: "EUR",
   orderEmail: "",
   phone: "",
 };
@@ -109,8 +109,8 @@ function SettingsConvex() {
             className={fieldClass}
             defaultValue={values.currency ?? defaultSettings.currency}
           >
-            <option>RSD</option>
             <option>EUR</option>
+            <option>RSD</option>
           </select>
         </FieldLabel>
         <FieldLabel label="Email za porudzbine">

@@ -217,7 +217,7 @@ export function ProfileClient() {
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                   {new Intl.DateTimeFormat(language === "sr" ? "sr-RS" : "en-GB").format(order.createdAt)}
                 </p>
-                <p className="mt-2 font-semibold">{new Intl.NumberFormat(language === "sr" ? "sr-RS" : "en-GB", { style: "currency", currency: "RSD", maximumFractionDigits: 0 }).format(order.totalSale)}</p>
+                <p className="mt-2 font-semibold">{new Intl.NumberFormat(language === "sr" ? "sr-RS" : "en-GB", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(order.totalSale)}</p>
               </article>
             )) : <p className="text-sm text-[var(--text-muted)]">{copy.noOrders}</p>}
           </div>
