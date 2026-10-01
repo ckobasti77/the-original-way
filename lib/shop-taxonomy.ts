@@ -155,3 +155,51 @@ export function getFirstParam(value: string | string[] | undefined) {
 export function toBrandSlug(name: string) {
   return slugify(name || "bez-brenda");
 }
+
+// Odevne veličine po stvarnom redosledu (abecedno bi bilo L, M, S, XL...).
+const LETTER_SIZE_RANK: Record<string, number> = {
+  XXS: 0,
+  XS: 1,
+  S: 2,
+  M: 3,
+  L: 4,
+  XL: 5,
+  XXL: 6,
+  "2XL": 6,
+  XXXL: 7,
+  "3XL": 7,
+  "4XL": 8,
+  "5XL": 9,
+};
+
+function sizeNumber(size: string) {
+  const parsed = Number(size.trim().replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export type SizeKind = "letter" | "number" | "other";
+
+export function getSizeKind(size: string): SizeKind {
+  if (LETTER_SIZE_RANK[size.trim().toUpperCase()] !== undefined) return "letter";
+  if (sizeNumber(size) !== null) return "number";
+  return "other";
+}
+
+/** Slovne veličine (XS→3XL), pa brojevi rastuće, pa ostalo abecedno. */
+export function sortSizes(sizes: string[]) {
+  const kindOrder: Record<SizeKind, number> = { letter: 0, number: 1, other: 2 };
+
+  return [...sizes].sort((a, b) => {
+    const kindA = getSizeKind(a);
+    const kindB = getSizeKind(b);
+    if (kindA !== kindB) return kindOrder[kindA] - kindOrder[kindB];
+    if (kindA === "letter") {
+      return (
+        LETTER_SIZE_RANK[a.trim().toUpperCase()] -
+        LETTER_SIZE_RANK[b.trim().toUpperCase()]
+      );
+    }
+    if (kindA === "number") return (sizeNumber(a) ?? 0) - (sizeNumber(b) ?? 0);
+    return a.localeCompare(b);
+  });
+}
