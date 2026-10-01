@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 
+import { useCurrency } from "@/components/currency-provider";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { localizeHref } from "@/lib/storefront-i18n";
-import { formatShopPrice } from "@/lib/shop-taxonomy";
 
 import { type CartItem, diffCartAgainst, useCart } from "./cart-provider";
 
@@ -102,6 +102,7 @@ function hasDemoItems(items: CartItem[]) {
 
 export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
   const { language } = useSettings();
+  const { currency, formatPrice } = useCurrency();
   const copy = LABELS[language];
   const router = useRouter();
   const { items, subtotal, clearCart, reconcile } = useCart();
@@ -215,6 +216,7 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
                 street: values.street.trim(),
                 houseNumber: values.houseNumber.trim(),
                 saveToProfile: Boolean(user) && saveToProfile,
+                currency,
                 items: items.map((item) => ({
                   productId: item.productId as Id<"products">,
                   size: item.size,
@@ -342,14 +344,14 @@ export function CheckoutClient({ convexEnabled }: { convexEnabled: boolean }) {
               <div className="min-w-0">
                 <p className="truncate font-semibold">{item.name}</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{item.size} · ×{item.quantity}</p>
-                <p className="mt-2 text-sm font-bold">{formatShopPrice(item.price * item.quantity)}</p>
+                <p className="mt-2 text-sm font-bold">{formatPrice(item.price * item.quantity)}</p>
               </div>
             </article>
           ))}
         </div>
         <div className="mt-6 flex items-center justify-between border-t border-[var(--border-soft)] pt-5">
           <span className="text-sm font-semibold text-[var(--text-muted)]">{copy.total}</span>
-          <span className="font-display text-3xl">{formatShopPrice(subtotal)}</span>
+          <span className="font-display text-3xl">{formatPrice(subtotal)}</span>
         </div>
       </aside>
     </div>

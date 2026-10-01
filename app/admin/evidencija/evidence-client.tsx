@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { sendOrderStatusEmail } from "@/app/actions";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { FALLBACK_EUR_RSD, formatMoneyFromEur } from "@/lib/currency";
 
 import {
   orderStatusClasses,
@@ -31,7 +32,7 @@ import { useConfirmDialog } from "../_components/confirm-dialog";
 type ProductRecord = {
   _id: Id<"products">;
   name: string;
-  type: "clothing" | "footwear";
+  type: "clothing" | "footwear" | "accessories";
   gender: "men" | "women" | "kids";
   costPrice: number;
   salePrice: number;
@@ -63,6 +64,8 @@ type OrderRecord = {
   items: DraftItem[];
   totalCost: number;
   totalSale: number;
+  currency?: "EUR" | "RSD";
+  exchangeRate?: number;
   createdAt: number;
 };
 
@@ -74,6 +77,18 @@ const emptyCustomer = {
   street: "",
   houseNumber: "",
 };
+
+// Prikaz iznosa porudžbine po ZAMRZNUTOJ valuti i kursu te porudžbine.
+// Iznos je u EUR bazi; stare porudžbine (bez polja) se tretiraju kao EUR.
+function formatOrderMoney(
+  order: Pick<OrderRecord, "currency" | "exchangeRate">,
+  amountEur: number,
+) {
+  return formatMoneyFromEur(amountEur, {
+    currency: order.currency ?? "EUR",
+    rate: order.exchangeRate ?? FALLBACK_EUR_RSD,
+  });
+}
 
 const emptyItem = {
   productId: "" as Id<"products"> | "",
@@ -638,10 +653,10 @@ function EvidenceConvex() {
                             </div>
                           </td>
                           <td className="px-4 py-4 font-semibold">
-                            {formatCurrency(order.totalCost)}
+                            {formatOrderMoney(order, order.totalCost)}
                           </td>
                           <td className="px-4 py-4 font-semibold">
-                            {formatCurrency(order.totalSale)}
+                            {formatOrderMoney(order, order.totalSale)}
                           </td>
                           <td className="px-4 py-4">
                             <div className="grid gap-2">
@@ -733,11 +748,11 @@ function EvidenceConvex() {
                     <div className="grid grid-cols-2 gap-2 text-xs border-t border-b border-black/[0.06] py-2">
                       <div>
                         <p className="text-black/45 uppercase text-[9px] font-bold tracking-wider">Nabavna vrednost</p>
-                        <p className="font-bold mt-0.5">{formatCurrency(order.totalCost)}</p>
+                        <p className="font-bold mt-0.5">{formatOrderMoney(order, order.totalCost)}</p>
                       </div>
                       <div>
                         <p className="text-black/45 uppercase text-[9px] font-bold tracking-wider">Prodajna vrednost</p>
-                        <p className="font-bold text-[#276c56] mt-0.5">{formatCurrency(order.totalSale)}</p>
+                        <p className="font-bold text-[#276c56] mt-0.5">{formatOrderMoney(order, order.totalSale)}</p>
                       </div>
                     </div>
 

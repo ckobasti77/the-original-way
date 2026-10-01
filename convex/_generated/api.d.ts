@@ -12,6 +12,8 @@ import type * as auth from "../auth.js";
 import type * as brands from "../brands.js";
 import type * as categories from "../categories.js";
 import type * as collections from "../collections.js";
+import type * as crons from "../crons.js";
+import type * as currency from "../currency.js";
 import type * as files from "../files.js";
 import type * as lib_authorization from "../lib/authorization.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
@@ -30,6 +32,8 @@ declare const fullApi: ApiFromModules<{
   brands: typeof brands;
   categories: typeof categories;
   collections: typeof collections;
+  crons: typeof crons;
+  currency: typeof currency;
   files: typeof files;
   "lib/authorization": typeof lib_authorization;
   "lib/rateLimits": typeof lib_rateLimits;

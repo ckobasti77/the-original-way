@@ -1,4 +1,4 @@
-export type ProductType = "clothing" | "footwear";
+export type ProductType = "clothing" | "footwear" | "accessories";
 export type ProductGender = "men" | "women" | "kids";
 export type ProductCategoryType = ProductType;
 export type OrderStatus = "new" | "processing" | "sent" | "completed";

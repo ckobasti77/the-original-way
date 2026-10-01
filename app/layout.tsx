@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 
 import { bodyFont, displayFont } from "@/app/fonts";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
+import { CurrencyProvider } from "@/components/currency-provider";
 import { SettingsProvider } from "@/components/settings-provider";
 import { AmbientScrollBackground } from "@/components/site/ambient-scroll-background";
 import { FloatingActions } from "@/components/site/floating-actions";
@@ -49,8 +50,10 @@ export default async function RootLayout({
           <SettingsProvider>
             <CartProvider>
               <ConvexClientProvider>
-                {children}
-                <FloatingActions />
+                <CurrencyProvider>
+                  {children}
+                  <FloatingActions />
+                </CurrencyProvider>
               </ConvexClientProvider>
             </CartProvider>
           </SettingsProvider>

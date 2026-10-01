@@ -7,11 +7,18 @@ import { requireAdmin } from "./lib/authorization";
 const productArgs = {
   name: v.string(),
   description: v.string(),
-  type: v.union(v.literal("clothing"), v.literal("footwear")),
+  type: v.union(
+    v.literal("clothing"),
+    v.literal("footwear"),
+    v.literal("accessories"),
+  ),
   gender: v.union(v.literal("men"), v.literal("women"), v.literal("kids")),
   categorySlug: v.optional(v.string()),
   costPrice: v.number(),
   salePrice: v.number(),
+  // Opcioni ručno unet RSD override (prikaz u katalogu); prolazi kroz upsert
+  // preko `...product` spread-a.
+  salePriceRsd: v.optional(v.number()),
   sizes: v.array(v.string()),
   imageStorageIds: v.array(v.id("_storage")),
   externalImageUrls: v.array(v.string()),

@@ -47,6 +47,7 @@ type RawProduct = {
   category?: RawCategory | null;
   costPrice?: number;
   salePrice: number;
+  salePriceRsd?: number;
   sizes: string[];
   imageUrls?: string[];
   externalImageUrls?: string[];
@@ -110,6 +111,7 @@ function normalizeProduct(
     brandName: brand?.name ?? "Bez brenda",
     costPrice: product.costPrice,
     salePrice: product.salePrice,
+    salePriceRsd: product.salePriceRsd,
     sizes: product.sizes,
     imageUrls: product.imageUrls ?? product.externalImageUrls ?? [],
     collectionSlugs: collectionSlugsByProductId.get(product._id) ?? [],

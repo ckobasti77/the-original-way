@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/shop/product-card";
 import { ProductFilters } from "@/components/shop/product-filters";
 import { getShopCatalog } from "@/lib/shop-data";
 import { applyShopFilters, parseShopFilters } from "@/lib/shop-filtering";
-import { formatShopPrice } from "@/lib/shop-taxonomy";
+import { Price } from "@/components/currency-provider";
 import { STORE_COPY, type StoreLocale } from "@/lib/storefront-i18n";
 
 function sortSizes(sizes: string[]) {
@@ -99,9 +99,7 @@ export default async function ProductsPage({
                 {copy.from}
               </p>
               <p className="mt-1 text-lg font-bold">
-                {catalog.products.length > 0
-                  ? formatShopPrice(Math.min(...prices))
-                  : "0 RSD"}
+                <Price value={catalog.products.length > 0 ? Math.min(...prices) : 0} />
               </p>
             </div>
           </div>
@@ -109,7 +107,7 @@ export default async function ProductsPage({
       </section>
 
       <section className="px-4 py-8 md:px-8 md:py-10">
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
           <Suspense
             fallback={
               <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-4 text-sm font-bold text-[var(--text-muted)]">

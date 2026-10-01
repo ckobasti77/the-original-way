@@ -8,6 +8,7 @@ import { logout } from "@/app/prijava/actions";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { FALLBACK_EUR_RSD, round10Up } from "@/lib/currency";
 import { localizeHref } from "@/lib/storefront-i18n";
 
 type ProfileValues = {
@@ -30,6 +31,8 @@ type ProfileOrder = {
   status: OrderStatus;
   createdAt: number;
   totalSale: number;
+  currency?: "EUR" | "RSD";
+  exchangeRate?: number;
 };
 
 const COPY = {
@@ -235,7 +238,13 @@ export function ProfileClient() {
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                   {new Intl.DateTimeFormat(language === "sr" ? "sr-RS" : "en-GB").format(order.createdAt)}
                 </p>
-                <p className="mt-2 font-semibold">{new Intl.NumberFormat(language === "sr" ? "sr-RS" : "en-GB", { style: "currency", currency: "RSD", maximumFractionDigits: 0 }).format(order.totalSale)}</p>
+                <p className="mt-2 font-semibold">{(() => {
+                  const orderCurrency = order.currency ?? "EUR";
+                  const amount = orderCurrency === "RSD"
+                    ? round10Up(order.totalSale * (order.exchangeRate ?? FALLBACK_EUR_RSD))
+                    : order.totalSale;
+                  return new Intl.NumberFormat(language === "sr" ? "sr-RS" : "en-GB", { style: "currency", currency: orderCurrency, maximumFractionDigits: 0 }).format(amount);
+                })()}</p>
               </article>
             )) : <p className="text-sm text-[var(--text-muted)]">{copy.noOrders}</p>}
           </div>

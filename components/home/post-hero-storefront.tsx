@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "convex/react";
 
+import { useCurrency } from "@/components/currency-provider";
 import { useSettings } from "@/components/settings-provider";
 import { api } from "@/convex/_generated/api";
 import { localizeHref } from "@/lib/storefront-i18n";
-import { formatShopPrice } from "@/lib/shop-taxonomy";
 
 const COPY = {
   sr: {
@@ -102,6 +102,7 @@ function Arrow() {
 
 export function PostHeroStorefront() {
   const { language } = useSettings();
+  const { formatPrice } = useCurrency();
   const copy = COPY[language];
   const rootRef = useRef<HTMLDivElement>(null);
   const productsResult = useQuery(api.products.list);
@@ -246,7 +247,7 @@ export function PostHeroStorefront() {
                   <p className="editorial-kicker">{product.brand?.name ?? "The Original Way"}</p>
                   <div className="mt-3 flex items-start justify-between gap-5">
                     <h3 className="text-lg font-semibold">{product.name}</h3>
-                    <p className="shrink-0 text-sm font-semibold">{formatShopPrice(product.salePrice)}</p>
+                    <p className="shrink-0 text-sm font-semibold">{formatPrice(product.salePrice)}</p>
                   </div>
                 </div>
               </Link>

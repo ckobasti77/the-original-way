@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Price } from "@/components/currency-provider";
 import { Navbar } from "@/components/home/navbar";
 import { ProductPurchasePanel } from "@/components/shop/add-to-cart-button";
 import { ProductCard } from "@/components/shop/product-card";
 import { getShopProduct } from "@/lib/shop-data";
 import {
-  formatShopPrice,
   productGenderLabels,
   productTypeLabels,
 } from "@/lib/shop-taxonomy";
@@ -95,7 +95,7 @@ export default async function ProductDetailPage({
                 {product.name}
               </h1>
               <p className="mt-5 text-3xl font-bold">
-                {formatShopPrice(product.salePrice)}
+                <Price value={product.salePrice} rsdOverride={product.salePriceRsd} />
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
