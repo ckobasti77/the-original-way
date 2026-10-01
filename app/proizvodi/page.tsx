@@ -1,21 +1,22 @@
 import { Suspense } from "react";
 
 import { Navbar } from "@/components/home/navbar";
-import { ProductCard } from "@/components/shop/product-card";
-import { ProductFilters } from "@/components/shop/product-filters";
-import { getShopCatalog } from "@/lib/shop-data";
-import { applyShopFilters, parseShopFilters } from "@/lib/shop-filtering";
 import { Price } from "@/components/currency-provider";
+import { ProductCard } from "@/components/shop/product-card";
+import { ActiveFiltersRow } from "@/components/shop/filters/active-filters";
+import { DesktopFilterBar } from "@/components/shop/filters/desktop-filter-bar";
+import { ShopFiltersProvider } from "@/components/shop/filters/filter-state";
+import { MobileFilterToolbar } from "@/components/shop/filters/mobile-filter-toolbar";
+import { ClearFiltersButton, ResultsPane } from "@/components/shop/filters/results-pane";
+import { getShopCatalog } from "@/lib/shop-data";
+import {
+  applyShopFilters,
+  filterBySearch,
+  parseShopFilters,
+  toFilterRecord,
+} from "@/lib/shop-filtering";
+import { sortSizes } from "@/lib/shop-taxonomy";
 import { STORE_COPY, type StoreLocale } from "@/lib/storefront-i18n";
-
-function sortSizes(sizes: string[]) {
-  return [...sizes].sort((a, b) => {
-    const left = Number(a);
-    const right = Number(b);
-    if (Number.isFinite(left) && Number.isFinite(right)) return left - right;
-    return a.localeCompare(b);
-  });
-}
 
 function getSingleValue(values: string[]) {
   return values.length === 1 ? values[0] : undefined;
@@ -36,10 +37,22 @@ export default async function ProductsPage({
   const filters = parseShopFilters(params);
   const filteredProducts = applyShopFilters(catalog.products, filters);
   const prices = catalog.products.map((product) => product.salePrice);
-  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-  const allSizes = sortSizes(
-    Array.from(new Set(catalog.products.flatMap((product) => product.sizes))),
-  );
+  // Klijent dobija samo slim zapise (bez opisa/slika) za brojace u filterima;
+  // tekstualna pretraga ostaje na serveru kao "opseg".
+  const filterRecords = filterBySearch(catalog.products, filters.q).map(toFilterRecord);
+  const filterTaxonomy = {
+    brands: catalog.brands
+      .map((brand) => ({ value: brand.slug, label: brand.name }))
+      .sort((a, b) => a.label.localeCompare(b.label, "sr")),
+    categories: catalog.categories,
+    collections: catalog.collections.map((collection) => ({
+      value: collection.slug,
+      label: collection.name,
+    })),
+    sizes: sortSizes(
+      Array.from(new Set(catalog.products.flatMap((product) => product.sizes))),
+    ),
+  };
   const selectedCollectionSlug = getSingleValue(filters.collection);
   const selectedCollection = selectedCollectionSlug
     ? catalog.collections.find((collection) => collection.slug === selectedCollectionSlug)
@@ -61,6 +74,25 @@ export default async function ProductsPage({
   const heroSubtitle = hasActiveFilters
     ? copy.filtered
     : copy.intro;
+
+  const productGrid =
+    filteredProducts.length === 0 ? (
+      <div className="grid min-h-[24rem] place-items-center rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface)] p-6 text-center">
+        <div>
+          <p className="font-display text-4xl font-semibold">{copy.emptyTitle}</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+            {copy.emptyText}
+          </p>
+          {hasActiveFilters ? <ClearFiltersButton /> : null}
+        </div>
+      </div>
+    ) : (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filteredProducts.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+    );
 
   return (
     <main className="store-shell min-h-screen text-[var(--text-primary)]">
@@ -106,63 +138,25 @@ export default async function ProductsPage({
         </div>
       </section>
 
-      <section className="px-4 py-8 md:px-8 md:py-10">
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-          <Suspense
-            fallback={
-              <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-4 text-sm font-bold text-[var(--text-muted)]">
-                {copy.loading}
-              </div>
-            }
+      {/* Bez horizontalnog paddinga: sticky traka ide od ivice do ivice, a
+          sekcija je njen "kontejner" pa ostaje zalepljena do kraja proizvoda. */}
+      <section>
+        <Suspense fallback={<div className="px-4 py-8 md:px-8 md:py-10">{productGrid}</div>}>
+          <ShopFiltersProvider
+            locale={locale}
+            records={filterRecords}
+            recordsQuery={filters.q}
+            serverCount={filteredProducts.length}
+            taxonomy={filterTaxonomy}
           >
-            <ProductFilters
-              activeFilters={filters}
-              brands={catalog.brands}
-              categories={catalog.categories}
-              collections={catalog.collections}
-              maxPrice={maxPrice}
-              sizes={allSizes}
-            />
-          </Suspense>
-
-          <div className="min-w-0">
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                  {copy.results}
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold">
-                  {filteredProducts.length} {copy.productCount}
-                </h2>
-              </div>
-              <p className="text-sm font-semibold text-[var(--text-muted)]">
-                {copy.sorting}:{" "}
-                {filters.sort === "price-asc"
-                  ? copy.priceAsc
-                  : filters.sort === "price-desc"
-                    ? copy.priceDesc
-                    : copy.newest}
-              </p>
+            <MobileFilterToolbar />
+            <DesktopFilterBar />
+            <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 md:px-8 lg:pt-6">
+              <ActiveFiltersRow />
+              <ResultsPane>{productGrid}</ResultsPane>
             </div>
-
-            {filteredProducts.length === 0 ? (
-              <div className="grid min-h-[24rem] place-items-center rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface)] p-6 text-center">
-                <div>
-                  <p className="font-display text-4xl font-semibold">{copy.emptyTitle}</p>
-                  <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                    {copy.emptyText}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          </ShopFiltersProvider>
+        </Suspense>
       </section>
     </main>
   );
